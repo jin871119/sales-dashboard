@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Store, TrendingUp, TrendingDown } from "lucide-react";
+import { Store, TrendingUp, TrendingDown, Search } from "lucide-react";
 import type { StorePerformance } from "@/types/dashboard";
 
 interface StoreAreaSelectorProps {
@@ -10,6 +10,7 @@ interface StoreAreaSelectorProps {
 
 export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProps) {
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   if (!storeByArea || Object.keys(storeByArea).length === 0) {
     return (
@@ -53,6 +54,20 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
 
   // 선택된 상권 데이터
   const selectedStats = selectedArea ? areaStats.find(s => s.area === selectedArea) : null;
+
+  // 검색어로 필터링된 매장 목록
+  const filteredStores = selectedStats 
+    ? selectedStats.stores.filter(store => 
+        store.storeName.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  // 필터링된 매장들의 통계 재계산
+  const filteredTotalNov2025 = filteredStores.reduce((sum, store) => sum + store.nov2025, 0);
+  const filteredTotalNov2024 = filteredStores.reduce((sum, store) => sum + store.nov2024, 0);
+  const filteredGrowthRate = filteredTotalNov2024 > 0 
+    ? Math.round(((filteredTotalNov2025 - filteredTotalNov2024) / filteredTotalNov2024) * 100)
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -103,11 +118,51 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
               </p>
             </div>
             <button
-              onClick={() => setSelectedArea(null)}
+              onClick={() => {
+                setSelectedArea(null);
+                setSearchQuery("");
+              }}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
             >
               닫기
             </button>
+          </div>
+
+          {/* 검색창 */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="매장명 검색... (예: 롯데, 신세계, 현대)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <div className="mt-2 text-sm text-gray-600">
+              {searchQuery ? (
+                <span>
+                  검색 결과: <span className="font-semibold text-purple-600">{filteredStores.length}개 매장</span>
+                  {filteredStores.length > 0 && (
+                    <span className="ml-2">
+                      (총 {formatMillion(filteredTotalNov2025)}백만원, 
+                      {filteredGrowthRate >= 0 ? ' +' : ' '}{filteredGrowthRate}%)
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span>전체 {selectedStats.storeCount}개 매장 표시 중</span>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -123,7 +178,20 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {selectedStats.stores.map((store, index) => {
+                {filteredStores.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center">
+                      <div className="text-gray-500">
+                        <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p className="text-lg font-semibold">검색 결과가 없습니다</p>
+                        <p className="text-sm mt-2">
+                          &quot;{searchQuery}&quot;와 일치하는 매장을 찾을 수 없습니다.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredStores.map((store, index) => {
                   const diff = store.nov2025 - store.nov2024;
                   const isPositive = diff >= 0;
 
@@ -170,7 +238,8 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
                       </td>
                     </tr>
                   );
-                })}
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -178,31 +247,36 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
           {/* 요약 통계 */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
-              <div className="text-sm text-blue-700 font-semibold">25년 11월 총 매출</div>
+              <div className="text-sm text-blue-700 font-semibold">
+                25년 11월 총 매출 {searchQuery && '(검색 결과)'}
+              </div>
               <div className="text-2xl font-bold text-blue-900 mt-1">
-                {formatMillion(selectedStats.totalNov2025)}백만원
+                {formatMillion(searchQuery ? filteredTotalNov2025 : selectedStats.totalNov2025)}백만원
               </div>
             </div>
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg">
-              <div className="text-sm text-gray-700 font-semibold">24년 11월 총 매출</div>
+              <div className="text-sm text-gray-700 font-semibold">
+                24년 11월 총 매출 {searchQuery && '(검색 결과)'}
+              </div>
               <div className="text-2xl font-bold text-gray-900 mt-1">
-                {formatMillion(selectedStats.totalNov2024)}백만원
+                {formatMillion(searchQuery ? filteredTotalNov2024 : selectedStats.totalNov2024)}백만원
               </div>
             </div>
             <div className={`bg-gradient-to-br p-4 rounded-lg ${
-              selectedStats.growthRate >= 0 
+              (searchQuery ? filteredGrowthRate : selectedStats.growthRate) >= 0 
                 ? 'from-green-50 to-green-100' 
                 : 'from-red-50 to-red-100'
             }`}>
               <div className={`text-sm font-semibold ${
-                selectedStats.growthRate >= 0 ? 'text-green-700' : 'text-red-700'
+                (searchQuery ? filteredGrowthRate : selectedStats.growthRate) >= 0 ? 'text-green-700' : 'text-red-700'
               }`}>
-                전년 대비 증감률
+                전년 대비 증감률 {searchQuery && '(검색 결과)'}
               </div>
               <div className={`text-2xl font-bold mt-1 ${
-                selectedStats.growthRate >= 0 ? 'text-green-900' : 'text-red-900'
+                (searchQuery ? filteredGrowthRate : selectedStats.growthRate) >= 0 ? 'text-green-900' : 'text-red-900'
               }`}>
-                {selectedStats.growthRate >= 0 ? '+' : ''}{selectedStats.growthRate}%
+                {(searchQuery ? filteredGrowthRate : selectedStats.growthRate) >= 0 ? '+' : ''}
+                {searchQuery ? filteredGrowthRate : selectedStats.growthRate}%
               </div>
             </div>
           </div>
