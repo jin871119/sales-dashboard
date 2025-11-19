@@ -234,7 +234,7 @@ export default function EnhancedDashboard() {
               요약 시트 데이터를 분석 중입니다
             </h3>
             <p className="text-gray-500 mb-6">
-              analyze-summary.bat를 실행하여 "요약" 시트를 분석하세요.
+              analyze-summary.bat를 실행하여 &quot;요약&quot; 시트를 분석하세요.
             </p>
             <button
               onClick={() => window.location.reload()}
@@ -340,8 +340,6 @@ export default function EnhancedDashboard() {
                 </p>
               </div>
             </div>
-
-            <RecentSales sales={data.recentSales} />
           </>
         )}
       </div>

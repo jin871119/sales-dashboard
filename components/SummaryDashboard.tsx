@@ -91,7 +91,7 @@ export default function SummaryDashboard({ data }: SummaryDashboardProps) {
         <div className="text-gray-400 mb-4">
           <Store className="w-16 h-16 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            "요약" 시트 데이터를 준비 중입니다
+            &quot;요약&quot; 시트 데이터를 준비 중입니다
           </h3>
           <p className="text-sm text-gray-500 mb-6">
             analyze-summary.bat 파일을 실행하여 데이터 구조를 분석하세요.
