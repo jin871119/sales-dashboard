@@ -3,14 +3,18 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 export interface SummaryData {
-  byArea?: any[];      // 상권별 (TARGET, FCST, LY 포함)
-  byTeam?: any[];      // team별 (TARGET, FCST, LY 포함)
-  byChannel?: any[];   // 유통별 (TARGET, FCST, LY 포함)
+  byArea?: any[];      // 상권별 (TARGET, 기간실적, FCST, LY 포함)
+  byTeam?: any[];      // team별 (TARGET, 기간실적, FCST, LY 포함)
+  byChannel?: any[];   // 유통별 (TARGET, 기간실적, FCST, LY 포함)
   byPure?: any[];      // 순수별
   byGroup?: any[];     // 단체별
   salesTarget?: any[]; // H열: 매출목표
   forecast?: any[];    // I열: 예상마감
   lastYear?: any[];    // K열: 작년실적
+  periodPerformance?: any[]; // Q열: 올해 기간실적
+  lastYearPeriod?: any[];    // R열: 전년 기간실적
+  periodGrowthRate?: any[];  // S열: 기간실적 전년비
+  forecastGrowthRate?: any[]; // L열: 예상 전년비
   rawData?: any[];     // 원본 데이터
   sheetName?: string;
 }
