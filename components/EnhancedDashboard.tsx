@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import KPICard from "./KPICard";
 import MetricCard from "./MetricCard";
 import SalesChart from "./SalesChart";
 import WeeklySalesChart from "./WeeklySalesChart";
