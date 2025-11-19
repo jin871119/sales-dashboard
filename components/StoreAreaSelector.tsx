@@ -46,9 +46,9 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
     };
   });
 
-  // 억원 단위로 포맷
-  const formatBillion = (value: number) => {
-    return (value / 100000000).toFixed(1);
+  // 백만원 단위로 포맷
+  const formatMillion = (value: number) => {
+    return (value / 1000000).toFixed(0);
   };
 
   // 선택된 상권 데이터
@@ -75,7 +75,7 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
                 <div className="text-sm font-semibold mb-2">{area}</div>
                 <div className="text-xs opacity-80">{storeCount}개 매장</div>
                 <div className="mt-2 text-lg font-bold">
-                  {formatBillion(totalNov2025)}억
+                  {formatMillion(totalNov2025)}백만
                 </div>
                 <div className={`text-xs font-semibold mt-1 ${
                   growthRate >= 0 ? 'text-green-300' : 'text-red-300'
@@ -97,7 +97,7 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
                 {selectedStats.area} 매장 상세
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                총 {selectedStats.storeCount}개 매장 • 25년 11월 {formatBillion(selectedStats.totalNov2025)}억 • 
+                총 {selectedStats.storeCount}개 매장 • 25년 11월 {formatMillion(selectedStats.totalNov2025)}백만 • 
                 {selectedStats.growthRate >= 0 ? ' 🔼' : ' 🔽'} {Math.abs(selectedStats.growthRate)}% 
                 {selectedStats.growthRate >= 0 ? '성장' : '감소'}
               </p>
@@ -116,10 +116,10 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-bold text-gray-900">순위</th>
                   <th className="px-4 py-3 text-left text-sm font-bold text-gray-900">매장명</th>
-                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-900">25년 11월<br/>(억원)</th>
-                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-900">24년 11월<br/>(억원)</th>
+                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-900">25년 11월<br/>(백만원)</th>
+                  <th className="px-4 py-3 text-right text-sm font-bold text-gray-900">24년 11월<br/>(백만원)</th>
                   <th className="px-4 py-3 text-center text-sm font-bold text-gray-900">전년 대비</th>
-                  <th className="px-4 py-3 text-center text-sm font-bold text-gray-900">증감액<br/>(억원)</th>
+                  <th className="px-4 py-3 text-center text-sm font-bold text-gray-900">증감액<br/>(백만원)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -144,10 +144,10 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
                         {store.storeName}
                       </td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-blue-700">
-                        {formatBillion(store.nov2025)}
+                        {formatMillion(store.nov2025)}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-600">
-                        {formatBillion(store.nov2024)}
+                        {formatMillion(store.nov2024)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold ${
@@ -166,7 +166,7 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
                       <td className={`px-4 py-3 text-center text-sm font-semibold ${
                         isPositive ? 'text-green-700' : 'text-red-700'
                       }`}>
-                        {isPositive ? '+' : ''}{formatBillion(diff)}
+                        {isPositive ? '+' : ''}{formatMillion(diff)}
                       </td>
                     </tr>
                   );
@@ -180,13 +180,13 @@ export default function StoreAreaSelector({ storeByArea }: StoreAreaSelectorProp
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
               <div className="text-sm text-blue-700 font-semibold">25년 11월 총 매출</div>
               <div className="text-2xl font-bold text-blue-900 mt-1">
-                {formatBillion(selectedStats.totalNov2025)}억원
+                {formatMillion(selectedStats.totalNov2025)}백만원
               </div>
             </div>
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg">
               <div className="text-sm text-gray-700 font-semibold">24년 11월 총 매출</div>
               <div className="text-2xl font-bold text-gray-900 mt-1">
-                {formatBillion(selectedStats.totalNov2024)}억원
+                {formatMillion(selectedStats.totalNov2024)}백만원
               </div>
             </div>
             <div className={`bg-gradient-to-br p-4 rounded-lg ${
