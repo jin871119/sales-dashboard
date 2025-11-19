@@ -41,6 +41,14 @@ export interface Sale {
   date: string;
 }
 
+export interface StorePerformance {
+  storeName: string;
+  nov2025: number;
+  nov2024: number;
+  growthRate: number;
+  area?: string;
+}
+
 export interface DashboardData {
   kpis: KPIs;
   monthlySales: MonthlySales[];
@@ -59,6 +67,7 @@ export interface DashboardData {
     lastYear?: any[];    // K열: 작년실적
     rawData?: any[];     // 원본 데이터
   };
+  storeByArea?: { [area: string]: StorePerformance[] }; // 상권별 매장 실적
   summary?: {
     totalRows: number;
     lastUpdated: string;

@@ -8,6 +8,7 @@ import SummaryTable from "./SummaryTable";
 import ForecastChart from "./ForecastChart";
 import DataTable from "./DataTable";
 import SummaryDashboard from "./SummaryDashboard";
+import StoreAreaSelector from "./StoreAreaSelector";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -216,6 +217,13 @@ export default function EnhancedDashboard() {
             {data.summarySheet && (
               <div className="mb-8">
                 <SummaryTable data={data.summarySheet} />
+              </div>
+            )}
+
+            {/* 상권별 매장 실적 */}
+            {data.storeByArea && Object.keys(data.storeByArea).length > 0 && (
+              <div className="mb-8">
+                <StoreAreaSelector storeByArea={data.storeByArea} />
               </div>
             )}
           </div>

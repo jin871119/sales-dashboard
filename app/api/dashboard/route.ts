@@ -8,6 +8,7 @@ export async function GET() {
       const { readExcelFile } = await import("@/lib/excelReader");
       const { readSummarySheet } = await import("@/lib/summaryReader");
       const { readMonthlyTargetSheet, readWeeklySalesSheet } = await import("@/lib/backDataReader");
+      const { readNovemberPerformance, readStoreArea, groupPerformanceByArea } = await import("@/lib/storePerformanceReader");
       
       // 메인 데이터 읽기
       const excelData = readExcelFile("ending focast.xlsx");
@@ -47,7 +48,18 @@ export async function GET() {
         console.log('⚠️  "주차별매출" 시트 로드 실패:', weeklyError);
       }
       
-      const data = convertExcelToDashboard(rawData, sheetName, summaryData, monthlyData, weeklyData);
+      // backdata.xlsx의 "11월실적" 및 "상권구분" 시트 읽기
+      let storeByArea: any = {};
+      try {
+        const performances = readNovemberPerformance("backdata.xlsx");
+        const storeAreaMap = readStoreArea("backdata.xlsx");
+        storeByArea = groupPerformanceByArea(performances, storeAreaMap);
+        console.log('✅ 상권별 매장 데이터 로드 성공:', Object.keys(storeByArea).length + '개 상권');
+      } catch (storeError) {
+        console.log('⚠️  상권별 매장 데이터 로드 실패:', storeError);
+      }
+      
+      const data = convertExcelToDashboard(rawData, sheetName, summaryData, monthlyData, weeklyData, storeByArea);
       return NextResponse.json(data);
       
     } catch (xlsxError: any) {
@@ -80,7 +92,7 @@ export async function GET() {
  * ⚠️ 실제 엑셀 구조에 맞게 컬럼명을 수정하세요!
  *    npm run analyze 명령으로 실제 컬럼명을 확인할 수 있습니다.
  */
-function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?: any, monthlyData?: any[], weeklyData?: any[]) {
+function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?: any, monthlyData?: any[], weeklyData?: any[], storeByArea?: any) {
   console.log(`\n🔄 데이터 변환 시작: ${rawData.length.toLocaleString()}행 처리 중...\n`);
   
   // 엑셀에서 읽은 데이터로 각 섹션 생성
@@ -254,6 +266,7 @@ function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?
     recentSales: salesData.length > 0 ? salesData : getDefaultData().recentSales,
     forecast: forecastData.length > 0 ? forecastData : undefined,
     summarySheet: summaryData || undefined,
+    storeByArea: storeByArea || {},
     summary: {
       totalRows: rawData.length,
       lastUpdated: new Date().toLocaleString('ko-KR'),
