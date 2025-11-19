@@ -30,50 +30,78 @@ export default function SummaryTable({ data }: SummaryTableProps) {
   const generateAiInsight = (sectionKey: string, items: any[]) => {
     if (!items || items.length === 0) return null;
 
-    const sumItem = items[0]; // SUM 데이터
-    const achievement = sumItem.target > 0 ? Math.round((sumItem.forecast / sumItem.target) * 100) : 0;
-    const growth = sumItem.lastYear > 0 ? Math.round(((sumItem.forecast - sumItem.lastYear) / sumItem.lastYear) * 100) : 0;
+    const sumItem = items.find(item => item.name?.includes('TTL') || item.name?.includes('SUM') || item.name?.includes('합계')) || items[0]; // TTL 데이터
+    
+    // 진도율 = (올해 기간실적 / 목표) × 100
+    const progressRate = sumItem.target > 0 ? Math.round((sumItem.periodPerformance / sumItem.target) * 100) : 0;
+    
+    // 기간실적 전년비
+    const periodGrowth = sumItem.periodGrowthRate || 0;
+    
+    // 예상달성률 = (예상마감 / 목표) × 100
+    const forecastAchievement = sumItem.target > 0 ? Math.round((sumItem.forecast / sumItem.target) * 100) : 0;
+    
+    // 예상전년비
+    const forecastGrowth = sumItem.forecastGrowthRate || 0;
 
     let insights = [];
     
-    // 달성률 분석
-    if (achievement >= 110) {
-      insights.push(`🎯 목표 대비 ${achievement}% 달성으로 매우 우수한 성과를 보이고 있습니다.`);
-    } else if (achievement >= 100) {
-      insights.push(`✅ 목표를 ${achievement}% 달성하여 안정적인 실적을 기록했습니다.`);
-    } else if (achievement >= 90) {
-      insights.push(`⚠️ 목표 달성률 ${achievement}%로 목표에 근접했으나, 추가 노력이 필요합니다.`);
+    // 진도율 분석
+    if (progressRate >= 90) {
+      insights.push(`🎯 현재 진도율 ${progressRate}%로 목표 달성이 거의 확실합니다!`);
+    } else if (progressRate >= 70) {
+      insights.push(`✅ 현재 진도율 ${progressRate}%로 양호한 진행 상황입니다.`);
+    } else if (progressRate >= 50) {
+      insights.push(`⚠️ 현재 진도율 ${progressRate}%로 목표 달성을 위해 추가 노력이 필요합니다.`);
     } else {
-      insights.push(`🔴 목표 달성률이 ${achievement}%로 저조합니다. 전략 재검토가 필요합니다.`);
+      insights.push(`🔴 현재 진도율이 ${progressRate}%로 저조합니다. 즉각적인 대응이 필요합니다.`);
     }
 
-    // 전년 대비 성장률 분석
-    if (growth >= 10) {
-      insights.push(`📈 전년 대비 ${growth}% 성장으로 강력한 상승세를 보이고 있습니다.`);
-    } else if (growth >= 0) {
-      insights.push(`📊 전년 대비 ${growth}% 성장으로 안정적인 성장세를 유지하고 있습니다.`);
-    } else if (growth >= -10) {
-      insights.push(`📉 전년 대비 ${growth}%로 소폭 감소했습니다. 시장 상황 점검이 필요합니다.`);
+    // 기간실적 전년비 분석
+    if (periodGrowth >= 10) {
+      insights.push(`📈 기간실적 전년비 ${periodGrowth >= 0 ? '+' : ''}${periodGrowth}%로 강력한 성장세를 보이고 있습니다.`);
+    } else if (periodGrowth >= 0) {
+      insights.push(`📊 기간실적 전년비 ${periodGrowth >= 0 ? '+' : ''}${periodGrowth}%로 안정적인 성장세를 유지하고 있습니다.`);
+    } else if (periodGrowth >= -10) {
+      insights.push(`📉 기간실적 전년비 ${periodGrowth}%로 소폭 감소했습니다. 시장 상황 점검이 필요합니다.`);
     } else {
-      insights.push(`⚠️ 전년 대비 ${growth}%로 큰 폭 감소했습니다. 즉각적인 대응이 필요합니다.`);
+      insights.push(`⚠️ 기간실적 전년비 ${periodGrowth}%로 큰 폭 감소했습니다. 즉각적인 대응이 필요합니다.`);
     }
 
-    // 개별 항목 분석 (SUM 제외)
-    const detailItems = items.slice(1);
+    // 예상달성률 분석
+    if (forecastAchievement >= 110) {
+      insights.push(`🚀 예상달성률 ${forecastAchievement}%로 목표를 초과 달성할 전망입니다!`);
+    } else if (forecastAchievement >= 100) {
+      insights.push(`✨ 예상달성률 ${forecastAchievement}%로 목표 달성이 예상됩니다.`);
+    } else if (forecastAchievement >= 90) {
+      insights.push(`💡 예상달성률 ${forecastAchievement}%로 목표에 근접할 전망입니다.`);
+    } else {
+      insights.push(`⚠️ 예상달성률 ${forecastAchievement}%로 목표 미달이 우려됩니다.`);
+    }
+
+    // 개별 항목 분석 (TTL 제외)
+    const detailItems = items.filter(item => !(item.name?.includes('TTL') || item.name?.includes('SUM') || item.name?.includes('합계')));
     if (detailItems.length > 0) {
       const topPerformer = detailItems.reduce((max, item) => {
-        const itemAchievement = item.target > 0 ? (item.forecast / item.target) * 100 : 0;
-        const maxAchievement = max.target > 0 ? (max.forecast / max.target) * 100 : 0;
-        return itemAchievement > maxAchievement ? item : max;
+        const itemProgressRate = item.target > 0 ? (item.periodPerformance / item.target) * 100 : 0;
+        const maxProgressRate = max.target > 0 ? (max.periodPerformance / max.target) * 100 : 0;
+        return itemProgressRate > maxProgressRate ? item : max;
       });
       
-      const topAchievement = topPerformer.target > 0 ? Math.round((topPerformer.forecast / topPerformer.target) * 100) : 0;
-      insights.push(`🏆 최고 실적: ${topPerformer.name} (${topAchievement}% 달성)`);
+      const topProgressRate = topPerformer.target > 0 ? Math.round((topPerformer.periodPerformance / topPerformer.target) * 100) : 0;
+      const topForecastAchievement = topPerformer.target > 0 ? Math.round((topPerformer.forecast / topPerformer.target) * 100) : 0;
+      insights.push(`🏆 최고 실적: ${topPerformer.name} (진도율 ${topProgressRate}%, 예상달성률 ${topForecastAchievement}%)`);
     }
 
     // 권장사항
-    if (achievement < 100) {
-      insights.push(`💡 권장사항: 목표 달성을 위해 ${Math.round((sumItem.target - sumItem.forecast) / 100000000)}억원의 추가 매출이 필요합니다.`);
+    if (progressRate < 70) {
+      const remainingAmount = Math.round((sumItem.target - sumItem.periodPerformance) / 100000000);
+      insights.push(`💡 권장사항: 목표 달성을 위해 ${remainingAmount}억원의 추가 매출이 필요합니다. 현재 진도율을 고려하면 달성 가능성이 낮으므로 전략 재검토가 필요합니다.`);
+    } else if (forecastAchievement < 100) {
+      const additionalAmount = Math.round((sumItem.target - sumItem.forecast) / 100000000);
+      insights.push(`💡 권장사항: 목표 달성을 위해 예상보다 ${additionalAmount}억원의 추가 매출이 필요합니다. 마지막 스퍼트를 준비하세요!`);
+    } else {
+      insights.push(`🎉 축하합니다! 현재 추세대로라면 목표를 초과 달성할 수 있습니다. 좋은 성과를 이어가세요!`);
     }
 
     return insights;
@@ -174,31 +202,50 @@ export default function SummaryTable({ data }: SummaryTableProps) {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-extrabold text-gray-900 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-extrabold text-gray-900 uppercase tracking-wider sticky left-0 bg-gray-100 z-10">
                     구분
                   </th>
-                  <th className="px-6 py-4 text-right text-sm font-extrabold text-gray-900 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-right text-xs font-extrabold text-gray-900 uppercase tracking-wider">
                     목표<br/>(억원)
                   </th>
-                  <th className="px-6 py-4 text-right text-sm font-extrabold text-gray-900 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-right text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
+                    올해<br/>기간실적
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider bg-blue-50">
+                    작년<br/>기간실적
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
+                    진도율
+                  </th>
+                  <th className="px-3 py-3 text-center text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
+                    전년비
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
                     예상마감<br/>(억원)
                   </th>
-                  <th className="px-6 py-4 text-right text-sm font-extrabold text-gray-900 uppercase tracking-wider">
-                    작년실적<br/>(억원)
+                  <th className="px-3 py-3 text-center text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
+                    예상<br/>달성률
                   </th>
-                  <th className="px-6 py-4 text-center text-sm font-extrabold text-gray-900 uppercase tracking-wider">
-                    달성률
-                  </th>
-                  <th className="px-6 py-4 text-center text-sm font-extrabold text-gray-900 uppercase tracking-wider">
-                    전년대비
+                  <th className="px-3 py-3 text-center text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
+                    예상<br/>전년비
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {displayItems.map((item, index) => {
                   const isTotal = item.name?.includes('TTL') || item.name?.includes('SUM') || item.name?.includes('합계');
-                  const achievement = item.target > 0 ? Math.round((item.forecast / item.target) * 100) : 0;
-                  const growth = item.lastYear > 0 ? Math.round(((item.forecast - item.lastYear) / item.lastYear) * 100) : 0;
+                  
+                  // 진도율 = (올해 기간실적 / 목표) × 100
+                  const progressRate = item.target > 0 ? Math.round((item.periodPerformance / item.target) * 100) : 0;
+                  
+                  // 전년비 (기간실적) = item.periodGrowthRate (이미 계산됨)
+                  const periodGrowth = item.periodGrowthRate || 0;
+                  
+                  // 예상달성률 = (예상마감 / 목표) × 100
+                  const forecastAchievement = item.target > 0 ? Math.round((item.forecast / item.target) * 100) : 0;
+                  
+                  // 예상전년비 = item.forecastGrowthRate (이미 계산됨)
+                  const forecastGrowth = item.forecastGrowthRate || 0;
 
                   return (
                     <tr 
@@ -207,26 +254,39 @@ export default function SummaryTable({ data }: SummaryTableProps) {
                         isTotal ? 'bg-gradient-to-r from-blue-100 to-blue-50 font-bold border-t-2 border-b-2 border-blue-200' : ''
                       }`}
                     >
-                      <td className={`px-6 py-4 whitespace-nowrap ${isTotal ? 'text-base font-bold text-gray-900' : 'text-base text-gray-800'}`}>
+                      <td className={`px-4 py-3 whitespace-nowrap sticky left-0 bg-white ${isTotal ? 'text-sm font-bold text-gray-900 bg-blue-50' : 'text-sm text-gray-800'}`}>
                         {isTotal ? '📊 ' : ''}{item.name}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-right ${isTotal ? 'text-base font-bold text-green-700' : 'text-base text-gray-700'}`}>
+                      <td className={`px-3 py-3 whitespace-nowrap text-right ${isTotal ? 'text-sm font-bold text-green-700' : 'text-sm text-gray-700'}`}>
                         {formatBillion(item.target)}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-right ${isTotal ? 'text-base font-bold text-blue-700' : 'text-base font-semibold text-gray-900'}`}>
-                        {formatBillion(item.forecast)}
+                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-blue-50 ${isTotal ? 'text-sm font-bold text-blue-800' : 'text-sm font-semibold text-blue-700'}`}>
+                        {formatBillion(item.periodPerformance)}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-right ${isTotal ? 'text-base font-bold text-gray-700' : 'text-base text-gray-600'}`}>
-                        {formatBillion(item.lastYear)}
+                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-blue-50 ${isTotal ? 'text-sm font-bold text-gray-700' : 'text-sm text-gray-600'}`}>
+                        {formatBillion(item.lastYearPeriod)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold ${getAchievementColor(achievement)}`}>
-                          {formatPercent(achievement)}
+                      <td className="px-3 py-3 whitespace-nowrap text-center bg-blue-50">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${getAchievementColor(progressRate)}`}>
+                          {formatPercent(progressRate)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`text-base font-bold ${getGrowthColor(growth)}`}>
-                          {growth >= 0 ? '+' : ''}{formatPercent(growth)}
+                      <td className="px-3 py-3 whitespace-nowrap text-center bg-blue-50">
+                        <span className={`text-sm font-bold ${getGrowthColor(periodGrowth)}`}>
+                          {periodGrowth >= 0 ? '+' : ''}{formatPercent(periodGrowth)}
+                        </span>
+                      </td>
+                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-purple-50 ${isTotal ? 'text-sm font-bold text-purple-800' : 'text-sm font-semibold text-purple-700'}`}>
+                        {formatBillion(item.forecast)}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-center bg-purple-50">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${getAchievementColor(forecastAchievement)}`}>
+                          {formatPercent(forecastAchievement)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-center bg-purple-50">
+                        <span className={`text-sm font-bold ${getGrowthColor(forecastGrowth)}`}>
+                          {forecastGrowth >= 0 ? '+' : ''}{formatPercent(forecastGrowth)}
                         </span>
                       </td>
                     </tr>
@@ -244,9 +304,17 @@ export default function SummaryTable({ data }: SummaryTableProps) {
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-xl p-8 mb-6 shadow-lg border-2 border-purple-200">
         <h2 className="text-3xl font-extrabold text-gray-900 mb-3">📊 영업 실적 요약</h2>
-        <p className="text-lg text-gray-700 font-medium">
+        <p className="text-lg text-gray-700 font-medium mb-2">
           상권별, TEAM별, 유통별 목표 대비 실적 및 전년 대비 성장률
         </p>
+        <div className="flex flex-wrap gap-3 mt-4">
+          <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-semibold">
+            📘 파란색: 기간실적 (진도율, 전년비)
+          </span>
+          <span className="px-4 py-2 bg-purple-100 text-purple-800 rounded-lg text-sm font-semibold">
+            📙 보라색: 예상마감 (예상달성률, 예상전년비)
+          </span>
+        </div>
       </div>
 
       {renderSection('🏢 상권별', 'area', data.byArea)}

@@ -88,6 +88,27 @@ export function readSummarySheet(filename: string): SummaryData {
       value: Math.round(parseFloat(String(row7['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0)
     }];
 
+    // Q열, R열, S열: 기간실적 관련
+    result.periodPerformance = [{
+      name: '올해 기간실적 (Q7)',
+      value: Math.round(parseFloat(String(row7['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0)
+    }];
+
+    result.lastYearPeriod = [{
+      name: '전년 기간실적 (R7)',
+      value: Math.round(parseFloat(String(row7['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0)
+    }];
+
+    result.periodGrowthRate = [{
+      name: '기간실적 전년비 (S7)',
+      value: Math.round((parseFloat(String(row7['__EMPTY_18'] || '0')) || 0) * 100) // 소수를 퍼센트로
+    }];
+
+    result.forecastGrowthRate = [{
+      name: '예상 전년비 (L7)',
+      value: Math.round((parseFloat(String(row7['__EMPTY_11'] || '0')) || 0) * 100) // 소수를 퍼센트로
+    }];
+
     // 상권별 데이터 추출 (상권 표에서)
     result.byArea = extractAreaData(rawData);
     
@@ -204,7 +225,7 @@ function extractByCategory(
  * TARGET, Sales FCST, LY ACTUAL 포함
  */
 function extractAreaData(data: any[]): any[] {
-  console.log('✅ 상권별 데이터 추출 (TARGET, FCST, LY)');
+  console.log('✅ 상권별 데이터 추출 (TARGET, 기간실적, FCST, LY)');
   
   const result: any[] = [];
   
@@ -218,7 +239,11 @@ function extractAreaData(data: any[]): any[] {
         result.push({
           name: sumName,
           target: Math.round(parseFloat(String(row['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          periodPerformance: Math.round(parseFloat(String(row['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          lastYearPeriod: Math.round(parseFloat(String(row['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          periodGrowthRate: Math.round((parseFloat(String(row['__EMPTY_18'] || '0')) || 0) * 100),
           forecast: Math.round(parseFloat(String(row['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          forecastGrowthRate: Math.round((parseFloat(String(row['__EMPTY_11'] || '0')) || 0) * 100),
           lastYear: Math.round(parseFloat(String(row['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0)
         });
       }
@@ -233,14 +258,22 @@ function extractAreaData(data: any[]): any[] {
         
         const name = String(dataRow['__EMPTY_6'] || '').trim();
         const target = parseFloat(String(dataRow['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const periodPerformance = parseFloat(String(dataRow['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const lastYearPeriod = parseFloat(String(dataRow['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const periodGrowthRate = (parseFloat(String(dataRow['__EMPTY_18'] || '0')) || 0) * 100;
         const forecast = parseFloat(String(dataRow['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const forecastGrowthRate = (parseFloat(String(dataRow['__EMPTY_11'] || '0')) || 0) * 100;
         const lastYear = parseFloat(String(dataRow['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0;
         
         if (name && (target > 0 || forecast > 0) && !name.includes('제외')) {
           result.push({
             name,
             target: Math.round(target),
+            periodPerformance: Math.round(periodPerformance),
+            lastYearPeriod: Math.round(lastYearPeriod),
+            periodGrowthRate: Math.round(periodGrowthRate),
             forecast: Math.round(forecast),
+            forecastGrowthRate: Math.round(forecastGrowthRate),
             lastYear: Math.round(lastYear)
           });
         }
@@ -258,7 +291,7 @@ function extractAreaData(data: any[]): any[] {
  * TARGET, Sales FCST, LY ACTUAL 포함
  */
 function extractTeamData(data: any[]): any[] {
-  console.log('✅ TEAM별 데이터 추출 (TARGET, FCST, LY)');
+  console.log('✅ TEAM별 데이터 추출 (TARGET, 기간실적, FCST, LY)');
   
   const result: any[] = [];
   
@@ -272,7 +305,11 @@ function extractTeamData(data: any[]): any[] {
         result.push({
           name: sumName,
           target: Math.round(parseFloat(String(row['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          periodPerformance: Math.round(parseFloat(String(row['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          lastYearPeriod: Math.round(parseFloat(String(row['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          periodGrowthRate: Math.round((parseFloat(String(row['__EMPTY_18'] || '0')) || 0) * 100),
           forecast: Math.round(parseFloat(String(row['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          forecastGrowthRate: Math.round((parseFloat(String(row['__EMPTY_11'] || '0')) || 0) * 100),
           lastYear: Math.round(parseFloat(String(row['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0)
         });
       }
@@ -287,14 +324,22 @@ function extractTeamData(data: any[]): any[] {
         
         const name = String(dataRow['__EMPTY_6'] || '').trim();
         const target = parseFloat(String(dataRow['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const periodPerformance = parseFloat(String(dataRow['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const lastYearPeriod = parseFloat(String(dataRow['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const periodGrowthRate = (parseFloat(String(dataRow['__EMPTY_18'] || '0')) || 0) * 100;
         const forecast = parseFloat(String(dataRow['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        const forecastGrowthRate = (parseFloat(String(dataRow['__EMPTY_11'] || '0')) || 0) * 100;
         const lastYear = parseFloat(String(dataRow['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0;
         
         if (name && (target > 0 || forecast > 0)) {
           result.push({
             name,
             target: Math.round(target),
+            periodPerformance: Math.round(periodPerformance),
+            lastYearPeriod: Math.round(lastYearPeriod),
+            periodGrowthRate: Math.round(periodGrowthRate),
             forecast: Math.round(forecast),
+            forecastGrowthRate: Math.round(forecastGrowthRate),
             lastYear: Math.round(lastYear)
           });
         }
@@ -312,7 +357,7 @@ function extractTeamData(data: any[]): any[] {
  * TARGET, Sales FCST, LY ACTUAL 포함
  */
 function extractChannelData(data: any[]): any[] {
-  console.log('✅ 유통별 데이터 추출 (21~27행)');
+  console.log('✅ 유통별 데이터 추출 (21~27행, 기간실적 포함)');
   
   const result: any[] = [];
   
@@ -326,18 +371,26 @@ function extractChannelData(data: any[]): any[] {
   if (data[20]) {
     const ttlRow = data[20];
     const target = parseFloat(String(ttlRow['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const periodPerformance = parseFloat(String(ttlRow['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const lastYearPeriod = parseFloat(String(ttlRow['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const periodGrowthRate = (parseFloat(String(ttlRow['__EMPTY_18'] || '0')) || 0) * 100;
     const forecast = parseFloat(String(ttlRow['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const forecastGrowthRate = (parseFloat(String(ttlRow['__EMPTY_11'] || '0')) || 0) * 100;
     const lastYear = parseFloat(String(ttlRow['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0;
     
     if (target > 0 || forecast > 0) {
       result.push({
         name: 'TTL',  // 명시적으로 TTL로 설정
         target: Math.round(target),
+        periodPerformance: Math.round(periodPerformance),
+        lastYearPeriod: Math.round(lastYearPeriod),
+        periodGrowthRate: Math.round(periodGrowthRate),
         forecast: Math.round(forecast),
+        forecastGrowthRate: Math.round(forecastGrowthRate),
         lastYear: Math.round(lastYear)
       });
       
-      console.log(`   21행(TTL): 목표 ${Math.round(target).toLocaleString()}, 예상 ${Math.round(forecast).toLocaleString()}, 작년 ${Math.round(lastYear).toLocaleString()}`);
+      console.log(`   21행(TTL): 목표 ${Math.round(target).toLocaleString()}, 기간실적 ${Math.round(periodPerformance).toLocaleString()}, 예상 ${Math.round(forecast).toLocaleString()}`);
     }
   }
   
@@ -350,18 +403,26 @@ function extractChannelData(data: any[]): any[] {
     if (!name) continue;
     
     const target = parseFloat(String(row['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const periodPerformance = parseFloat(String(row['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const lastYearPeriod = parseFloat(String(row['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const periodGrowthRate = (parseFloat(String(row['__EMPTY_18'] || '0')) || 0) * 100;
     const forecast = parseFloat(String(row['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+    const forecastGrowthRate = (parseFloat(String(row['__EMPTY_11'] || '0')) || 0) * 100;
     const lastYear = parseFloat(String(row['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0;
     
     if (target > 0 || forecast > 0) {
       result.push({
         name: name,
         target: Math.round(target),
+        periodPerformance: Math.round(periodPerformance),
+        lastYearPeriod: Math.round(lastYearPeriod),
+        periodGrowthRate: Math.round(periodGrowthRate),
         forecast: Math.round(forecast),
+        forecastGrowthRate: Math.round(forecastGrowthRate),
         lastYear: Math.round(lastYear)
       });
       
-      console.log(`   ${i + 1}행: ${name} - 목표: ${Math.round(target).toLocaleString()}, 예상: ${Math.round(forecast).toLocaleString()}`);
+      console.log(`   ${i + 1}행: ${name} - 목표: ${Math.round(target).toLocaleString()}, 기간실적: ${Math.round(periodPerformance).toLocaleString()}`);
     }
   }
   
