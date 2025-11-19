@@ -398,13 +398,19 @@ function extractChannelData(data: any[]): any[] {
     }
   }
   
-  // 22~27행(개별 항목) 처리
-  for (let i = 21; i <= 26 && i < data.length; i++) {
+  // 22~30행(개별 항목) 처리 - 범위 확장하여 모든 유통별 항목 포함
+  for (let i = 21; i <= 30 && i < data.length; i++) {
     const row = data[i];
     if (!row) continue;
     
     const name = String(row['__EMPTY_6'] || '').trim();
     if (!name) continue;
+    
+    // 다음 섹션(순수별 등)이 시작되면 중단
+    if (row['__EMPTY_4']?.includes('순수') || row['__EMPTY_4']?.includes('단체')) {
+      console.log(`   ⚠️  다음 섹션 감지: ${row['__EMPTY_4']}, 유통별 추출 중단`);
+      break;
+    }
     
     const target = parseFloat(String(row['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
     const periodPerformance = parseFloat(String(row['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
