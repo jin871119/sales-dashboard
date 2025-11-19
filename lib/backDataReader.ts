@@ -46,7 +46,7 @@ export function readMonthlyTargetSheet(filename: string): MonthlyData[] {
     console.log(`✅ "${sheetName}" 시트 선택됨`);
 
     const worksheet = workbook.Sheets[sheetName];
-    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
     console.log(`📊 총 ${rawData.length}행 발견`);
 
@@ -61,10 +61,10 @@ export function readMonthlyTargetSheet(filename: string): MonthlyData[] {
     // 2행(인덱스 1): ["목표", 목표값1, 목표값2, ...]
     // 3행(인덱스 2): ["실적", 실적값1, 실적값2, ...]
     // 4행(인덱스 3): ["작년실적", 작년값1, 작년값2, ...] 또는 달성율
-    const monthRow = rawData[0];   // 1행: 월 정보
-    const targetRow = rawData[1];  // 2행: 목표
-    const salesRow = rawData[2];   // 3행: 실적
-    const lastYearRow = rawData[4] || rawData[3]; // 5행 또는 4행: 작년실적
+    const monthRow = rawData[0] as any[];   // 1행: 월 정보
+    const targetRow = rawData[1] as any[];  // 2행: 목표
+    const salesRow = rawData[2] as any[];   // 3행: 실적
+    const lastYearRow = (rawData[4] || rawData[3]) as any[]; // 5행 또는 4행: 작년실적
     
     console.log(`📊 1행(월): ${monthRow?.length || 0}개 셀`);
     console.log(`📊 2행(목표): ${targetRow?.length || 0}개 셀`);
@@ -221,7 +221,7 @@ export function readWeeklySalesSheet(filename: string): WeeklyData[] {
     console.log(`✅ "${sheetName}" 시트 선택됨`);
 
     const worksheet = workbook.Sheets[sheetName];
-    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
     console.log(`📊 총 ${rawData.length}행 발견`);
 
@@ -235,9 +235,9 @@ export function readWeeklySalesSheet(filename: string): WeeklyData[] {
     // 1행(인덱스 0): [A1?, "1주", "2주", "3주", ..., "52주"]
     // 2행(인덱스 1): ["금년", 금년값1, 금년값2, ...]
     // 3행(인덱스 2): ["전년", 전년값1, 전년값2, ...]
-    const weekRow = rawData[0];   // 1행: 주차 정보
-    const thisYearRow = rawData[1];  // 2행: 금년
-    const lastYearRow = rawData[2];  // 3행: 전년
+    const weekRow = rawData[0] as any[];   // 1행: 주차 정보
+    const thisYearRow = rawData[1] as any[];  // 2행: 금년
+    const lastYearRow = rawData[2] as any[];  // 3행: 전년
     
     console.log(`📊 1행(주차): ${weekRow?.length || 0}개 셀`);
     console.log(`📊 2행(금년): ${thisYearRow?.length || 0}개 셀`);
