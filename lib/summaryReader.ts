@@ -361,45 +361,22 @@ function extractTeamData(data: any[]): any[] {
  * TARGET, Sales FCST, LY ACTUAL 포함
  */
 function extractChannelData(data: any[]): any[] {
-  console.log('✅ 유통별 데이터 추출 (21~27행, 기간실적 포함)');
+  console.log('✅ 유통별 데이터 추출 (21행부터 시작, TTL 없음)');
   
   const result: any[] = [];
   
-  // 21행~27행 직접 읽기 (인덱스는 20~26)
-  // 21행: 유통별 SUM/TTL
-  // 22행~27행: 개별 항목들
-  
   console.log(`📊 총 데이터 행 수: ${data.length}`);
   
-  // 먼저 21행(TTL) 처리
-  if (data[20]) {
-    const ttlRow = data[20];
-    const target = parseFloat(String(ttlRow['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const periodPerformance = parseFloat(String(ttlRow['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const lastYearPeriod = parseFloat(String(ttlRow['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const periodGrowthRate = (parseFloat(String(ttlRow['__EMPTY_18'] || '0')) || 0) * 100;
-    const forecast = parseFloat(String(ttlRow['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const forecastGrowthRate = (parseFloat(String(ttlRow['__EMPTY_11'] || '0')) || 0) * 100;
-    const lastYear = parseFloat(String(ttlRow['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    
-    if (target > 0 || forecast > 0) {
-      result.push({
-        name: 'TTL',  // 명시적으로 TTL로 설정
-        target: Math.round(target),
-        periodPerformance: Math.round(periodPerformance),
-        lastYearPeriod: Math.round(lastYearPeriod),
-        periodGrowthRate: Math.round(periodGrowthRate),
-        forecast: Math.round(forecast),
-        forecastGrowthRate: Math.round(forecastGrowthRate),
-        lastYear: Math.round(lastYear)
-      });
-      
-      console.log(`   21행(TTL): 목표 ${Math.round(target).toLocaleString()}, 기간실적 ${Math.round(periodPerformance).toLocaleString()}, 예상 ${Math.round(forecast).toLocaleString()}`);
-    }
-  }
+  // 유통별은 TTL이 없고 21행(인덱스 20)부터 바로 시작!
+  // 21행: 백화점
+  // 22행: 대리점
+  // 23행: 직영점
+  // 24행: 면세+도매
+  // 25행: 온라인
+  // 26행: 상설(위탁)
   
-  // 22~30행(개별 항목) 처리 - 범위 확장하여 모든 유통별 항목 포함
-  for (let i = 21; i <= 30 && i < data.length; i++) {
+  // 21~30행 처리 (인덱스 20~29)
+  for (let i = 20; i <= 29 && i < data.length; i++) {
     const row = data[i];
     if (!row) continue;
     
