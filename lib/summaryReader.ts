@@ -38,7 +38,7 @@ export function readSummarySheet(filename: string): SummaryData {
     }
 
     const worksheet = workbook.Sheets[summarySheetName];
-    const rawData = XLSX.utils.sheet_to_json(worksheet);
+    const rawData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
     console.log(`📊 "${summarySheetName}" 시트 로드: ${rawData.length}행`);
 

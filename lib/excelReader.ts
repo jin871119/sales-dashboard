@@ -28,7 +28,7 @@ export function readExcelFile(filename: string): ExcelData {
     workbook.SheetNames.forEach((sheetName) => {
       const worksheet = workbook.Sheets[sheetName];
       // 시트를 JSON으로 변환
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
       result[sheetName] = jsonData;
     });
     
