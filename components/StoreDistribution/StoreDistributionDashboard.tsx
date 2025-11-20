@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from 'next/dynamic';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, Cell, PieChart, Pie, Sector,
@@ -10,6 +11,9 @@ import {
   MapPin, Building2, TrendingUp, DollarSign, Package,
   Users, Globe, Filter, Download, RefreshCw
 } from "lucide-react";
+
+// Plotly를 동적으로 로드 (SSR 방지)
+const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
 
 interface StoreData {
   storeCode: string;
@@ -323,13 +327,13 @@ export default function StoreDistributionDashboard() {
         </div>
       </div>
 
-      {/* 3D 뷰 - 등급 기반 버블 차트 */}
+      {/* 3D 뷰 - 진짜 3D Scatter Plot */}
       {viewMode === "3d" && (
         <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="mb-6">
             <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
               <Globe className="w-6 h-6 text-purple-600" />
-              매장 3차원 등급 분포도
+              매장 3차원 등급 분포도 (실제 3D)
             </h3>
             <div className="flex flex-wrap gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-2">
@@ -342,108 +346,96 @@ export default function StoreDistributionDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span>버블 크기: 매장평수등급 (A=큼, B=중, C=작음)</span>
+                <span>Z축: 매장평수등급 (A=4, B=3, C=2, D=1)</span>
               </div>
             </div>
+            <p className="text-sm text-purple-600 mt-2">
+              🖱️ 마우스로 3D 그래프를 회전하고 확대/축소할 수 있습니다!
+            </p>
           </div>
           
-          <ResponsiveContainer width="100%" height={600}>
-            <ScatterChart margin={{ top: 20, right: 20, bottom: 80, left: 80 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                type="number" 
-                dataKey="x" 
-                name="백화점등급" 
-                domain={[0, 6]}
-                ticks={[1, 2, 3, 4, 5]}
-                tickFormatter={(value) => {
-                  const map: { [key: number]: string } = { 1: "D", 2: "C", 3: "B", 4: "A", 5: "S" };
-                  return map[value] || "";
-                }}
-                label={{ 
-                  value: '백화점 등급 (Department Grade)', 
-                  position: 'bottom', 
-                  offset: 20,
-                  style: { fontSize: 14, fontWeight: 'bold' }
-                }}
-              />
-              <YAxis 
-                type="number" 
-                dataKey="y" 
-                name="매출등급"
-                domain={[0, 5]}
-                ticks={[1, 2, 3, 4]}
-                tickFormatter={(value) => {
-                  const map: { [key: number]: string } = { 1: "D", 2: "C", 3: "B", 4: "A" };
-                  return map[value] || "";
-                }}
-                label={{ 
-                  value: '매출 등급 (Sales Grade)', 
-                  angle: -90, 
-                  position: 'insideLeft',
-                  style: { fontSize: 14, fontWeight: 'bold' }
-                }}
-              />
-              <ZAxis 
-                type="number" 
-                dataKey="z" 
-                range={[200, 2000]} 
-                name="매장평수등급" 
-              />
-              <Tooltip 
-                cursor={{ strokeDasharray: '3 3' }}
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const store = payload[0].payload;
-                    return (
-                      <div className="bg-white p-4 rounded-lg shadow-xl border-2 border-purple-200">
-                        <p className="font-bold text-lg text-gray-900 mb-3">{store.storeName}</p>
-                        
-                        <div className="space-y-2 mb-3 pb-3 border-b">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">🏢 백화점등급:</span>
-                            <span className="text-lg font-bold text-purple-600">{store.departmentGrade}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">💰 매출등급:</span>
-                            <span className="text-lg font-bold text-blue-600">{store.salesGrade}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">📏 매장평수등급:</span>
-                            <span className="text-lg font-bold text-green-600">{store.areaGrade}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1 text-sm">
-                          <p className="text-gray-600">지역: {store.region}</p>
-                          <p className="text-gray-600">유형: {store.storeType}</p>
-                          <p className="text-purple-600 font-semibold">
-                            매출액: {(store.totalSales / 100000000).toFixed(2)}억원
-                          </p>
-                          <p className="text-blue-600">
-                            판매수량: {store.totalQuantity.toLocaleString()}개
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Legend />
-              {data.byRegion.map(region => {
+          {/* Plotly 3D Scatter */}
+          <div style={{ width: '100%', height: '700px' }}>
+            <Plot
+              data={data.byRegion.map(region => {
                 const regionStores = filteredStores.filter(s => s.region === region.region);
-                return (
-                  <Scatter
-                    key={region.region}
-                    name={region.region}
-                    data={regionStores}
-                    fill={regionColors[region.region] || "#6b7280"}
-                  />
-                );
+                return {
+                  type: 'scatter3d',
+                  mode: 'markers',
+                  name: region.region,
+                  x: regionStores.map(s => s.x),
+                  y: regionStores.map(s => s.y),
+                  z: regionStores.map(s => gradeToNumber(s.areaGrade || 'C')),
+                  text: regionStores.map(s => 
+                    `${s.storeName}<br>` +
+                    `백화점등급: ${s.departmentGrade}<br>` +
+                    `매출등급: ${s.salesGrade}<br>` +
+                    `매장평수등급: ${s.areaGrade}<br>` +
+                    `매출액: ${(s.totalSales / 100000000).toFixed(2)}억원<br>` +
+                    `판매수량: ${s.totalQuantity.toLocaleString()}개`
+                  ),
+                  marker: {
+                    size: regionStores.map(s => gradeToNumber(s.areaGrade || 'C') * 3),
+                    color: regionColors[region.region] || '#6b7280',
+                    opacity: 0.8,
+                    line: {
+                      color: 'white',
+                      width: 0.5
+                    }
+                  },
+                  hovertemplate: '<b>%{text}</b><extra></extra>'
+                } as any;
               })}
-            </ScatterChart>
-          </ResponsiveContainer>
+              layout={{
+                autosize: true,
+                scene: {
+                  xaxis: {
+                    title: '백화점등급 (Department Grade)',
+                    ticktext: ['D', 'C', 'B', 'A', 'S'],
+                    tickvals: [1, 2, 3, 4, 5],
+                    range: [0, 6]
+                  },
+                  yaxis: {
+                    title: '매출등급 (Sales Grade)',
+                    ticktext: ['D', 'C', 'B', 'A'],
+                    tickvals: [1, 2, 3, 4],
+                    range: [0, 5]
+                  },
+                  zaxis: {
+                    title: '매장평수등급 (Area Grade)',
+                    ticktext: ['D', 'C', 'B', 'A'],
+                    tickvals: [1, 2, 3, 4],
+                    range: [0, 5]
+                  },
+                  camera: {
+                    eye: { x: 1.5, y: 1.5, z: 1.3 }
+                  }
+                },
+                showlegend: true,
+                legend: {
+                  x: 1.02,
+                  y: 1
+                },
+                margin: {
+                  l: 0,
+                  r: 0,
+                  b: 0,
+                  t: 40
+                },
+                title: {
+                  text: '매장별 3차원 등급 분석',
+                  font: { size: 18 }
+                }
+              }}
+              config={{
+                displayModeBar: true,
+                displaylogo: false,
+                modeBarButtonsToRemove: ['toImage'],
+                responsive: true
+              }}
+              style={{ width: '100%', height: '100%' }}
+            />
+          </div>
 
           {/* 범례 및 설명 */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
