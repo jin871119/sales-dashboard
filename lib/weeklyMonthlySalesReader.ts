@@ -152,17 +152,27 @@ function excelDateToJSDate(serial: number): string {
 // 일주월별 판매 엑셀 파일 읽기
 export function readWeeklySalesExcel(): WeeklySalesRecord[] {
   try {
+    // 프로젝트 루트 경로
+    const rootDir = process.cwd();
+    
     // 엑셀 파일 찾기
-    const files = fs.readdirSync('.');
-    const excelFile = files.find(f => f.startsWith('mw_일주월별_판매') && f.endsWith('.xlsx'));
+    const files = fs.readdirSync(rootDir);
+    const excelFile = files.find(f => 
+      f.startsWith('mw_일주월별_판매') && 
+      f.endsWith('.xlsx') && 
+      !f.startsWith('~$') // 임시 파일 제외
+    );
     
     if (!excelFile) {
+      console.error('프로젝트 루트:', rootDir);
+      console.error('파일 목록:', files.filter(f => f.includes('일주월별')));
       throw new Error('mw_일주월별_판매 엑셀 파일을 찾을 수 없습니다.');
     }
     
-    console.log(`📊 읽는 중: ${excelFile}`);
+    const filePath = path.join(rootDir, excelFile);
+    console.log(`📊 읽는 중: ${filePath}`);
     
-    const workbook = XLSX.readFile(excelFile);
+    const workbook = XLSX.readFile(filePath);
     const worksheet = workbook.Sheets['report'];
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
     
