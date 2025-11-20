@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 // 엑셀 파일에서 데이터를 읽어옵니다
 export async function GET() {
   try {

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { readWeeklySalesExcel, analyzeWeeklySales } from '@/lib/weeklyMonthlySalesReader';
 import { readStoreArea } from '@/lib/storePerformanceReader';
 
+// 빌드 시 정적 생성 방지 및 항상 최신 데이터 로드
+export const dynamic = 'force-dynamic';
+
 // 캐시 (메모리에 저장)
 let cachedData: any = null;
 let cacheTime: number = 0;
