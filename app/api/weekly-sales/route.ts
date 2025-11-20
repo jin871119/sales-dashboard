@@ -16,10 +16,13 @@ export async function GET(request: Request) {
     
     const { searchParams } = new URL(request.url);
     const view = searchParams.get('view') || 'analytics';
+    const period = searchParams.get('period') || 'monthly';
     const storeType = searchParams.get('storeType');
     const brand = searchParams.get('brand');
     const region = searchParams.get('region');
     const onlineOnly = searchParams.get('onlineOnly');
+    
+    console.log(`📅 기간 필터: ${period}`);
     
     // 캐시 확인
     const now = Date.now();
@@ -30,11 +33,19 @@ export async function GET(request: Request) {
       const records = readWeeklySalesExcel();
       console.log(`✅ ${records.length}개 레코드 읽음`);
       
-      cachedData = analyzeWeeklySales(records);
+      cachedData = analyzeWeeklySales(records, period as 'weekly' | 'monthly');
       cacheTime = now;
       console.log('✅ 데이터 캐시 완료');
     } else {
       console.log('⚡ 캐시된 데이터 사용');
+      // period가 변경되면 재분석
+      const currentPeriod = cachedData._period || 'monthly';
+      if (currentPeriod !== period) {
+        console.log(`⚡ 기간 변경 감지 (${currentPeriod} → ${period}), 재분석 시작`);
+        const records = readWeeklySalesExcel();
+        cachedData = analyzeWeeklySales(records, period as 'weekly' | 'monthly');
+        cacheTime = now;
+      }
     }
     
     let data = { ...cachedData };

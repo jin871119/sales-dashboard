@@ -335,20 +335,55 @@ function parseWeeklySalesData(data: any[][]): WeeklySalesRecord[] {
 }
 
 // 분석 데이터 생성
-export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAnalytics {
-  console.log(`🔍 분석 시작: ${records.length}개 레코드`);
+export function analyzeWeeklySales(records: WeeklySalesRecord[], period: 'weekly' | 'monthly' = 'monthly'): WeeklySalesAnalytics {
+  console.log(`🔍 분석 시작: ${records.length}개 레코드, 기간: ${period}`);
+  
+  // 날짜 추출 (먼저 날짜를 확인해서 주간 필터링에 사용)
+  const allDates = new Set<string>();
+  records.forEach(r => {
+    Object.keys(r.dailySales).forEach(date => allDates.add(date));
+  });
+  let dates = Array.from(allDates).sort();
+  
+  // 주간 필터: 최근 7일만 사용
+  if (period === 'weekly' && dates.length > 7) {
+    const recentDates = dates.slice(-7); // 최근 7일
+    console.log(`📅 주간 필터 적용: ${recentDates[0]} ~ ${recentDates[recentDates.length - 1]}`);
+    
+    // records를 필터링하여 최근 7일의 판매만 포함하도록 변환
+    records = records.map(r => {
+      const filteredDailySales: { [date: string]: number } = {};
+      let filteredQuantity = 0;
+      let filteredSales = 0;
+      
+      recentDates.forEach(date => {
+        if (r.dailySales[date]) {
+          filteredDailySales[date] = r.dailySales[date];
+          filteredQuantity += r.dailySales[date];
+        }
+      });
+      
+      // 비율 계산하여 판매액 추정 (일별 수량을 기준으로)
+      const totalDailyQuantity = Object.values(r.dailySales).reduce((sum, qty) => sum + qty, 0);
+      if (totalDailyQuantity > 0) {
+        filteredSales = (r.totalSales * filteredQuantity) / totalDailyQuantity;
+      }
+      
+      return {
+        ...r,
+        dailySales: filteredDailySales,
+        totalQuantity: filteredQuantity,
+        totalSales: filteredSales
+      };
+    }).filter(r => r.totalQuantity > 0); // 해당 기간에 판매가 있는 레코드만
+    
+    dates = recentDates;
+  }
   
   // 전체 통계 - M열(판매액), L열(판매수량) 사용
   const totalSales = records.reduce((sum, r) => sum + r.totalSales, 0);  // M열 = 판매액
   const totalQuantity = records.reduce((sum, r) => sum + r.totalQuantity, 0);  // L열 = 판매수량
   const totalReturns = records.reduce((sum, r) => sum + Math.abs(r.returnSales), 0);
-  
-  // 날짜 추출
-  const allDates = new Set<string>();
-  records.forEach(r => {
-    Object.keys(r.dailySales).forEach(date => allDates.add(date));
-  });
-  const dates = Array.from(allDates).sort();
   
   console.log(`📅 추출된 고유 날짜 수: ${dates.length}`);
   if (dates.length > 0) {
@@ -613,6 +648,7 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
     .slice(0, 50);
   
   return {
+    _period: period, // 캐시 비교용
     totalSales,
     totalQuantity,
     averagePrice: totalSales / totalQuantity,

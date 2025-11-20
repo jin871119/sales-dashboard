@@ -48,13 +48,14 @@ export default function WeeklySalesDashboard() {
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<any | null>(null);
   const [showDailyTable, setShowDailyTable] = useState(false);
+  const [productPeriod, setProductPeriod] = useState<"weekly" | "monthly">("monthly");
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("/api/weekly-sales?view=analytics");
+        const response = await fetch(`/api/weekly-sales?view=analytics&period=${productPeriod}`);
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -134,7 +135,7 @@ export default function WeeklySalesDashboard() {
     }
 
     fetchData();
-  }, []);
+  }, [productPeriod]);
 
   // ESC 키로 모달 닫기
   useEffect(() => {
@@ -646,10 +647,36 @@ export default function WeeklySalesDashboard() {
         <div className="space-y-6">
           {/* 베스트셀러 */}
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Package className="w-5 h-5 text-orange-600" />
-              베스트셀러 Top 20 (클릭하여 매장별 판매 확인)
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Package className="w-5 h-5 text-orange-600" />
+                베스트셀러 Top 20 (클릭하여 매장별 판매 확인)
+              </h3>
+              
+              {/* 주간/월간 필터 버튼 */}
+              <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setProductPeriod("weekly")}
+                  className={`px-4 py-2 rounded-md font-medium transition-all ${
+                    productPeriod === "weekly"
+                      ? "bg-orange-500 text-white shadow-md"
+                      : "text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  📅 주간 (최근 7일)
+                </button>
+                <button
+                  onClick={() => setProductPeriod("monthly")}
+                  className={`px-4 py-2 rounded-md font-medium transition-all ${
+                    productPeriod === "monthly"
+                      ? "bg-orange-500 text-white shadow-md"
+                      : "text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  📆 월간 (전체 기간)
+                </button>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
