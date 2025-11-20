@@ -30,6 +30,9 @@ export interface WeeklySalesRecord {
 
 // 집계 데이터
 export interface WeeklySalesAnalytics {
+  // 캐시 비교용 (내부 사용)
+  _period?: 'weekly' | 'monthly';
+  
   // 전체 통계
   totalSales: number;
   totalQuantity: number;
