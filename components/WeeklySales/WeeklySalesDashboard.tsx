@@ -46,6 +46,7 @@ export default function WeeklySalesDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<"overview" | "stores" | "products">("overview");
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<any | null>(null);
   const [showDailyTable, setShowDailyTable] = useState(false);
 
   useEffect(() => {
@@ -79,14 +80,18 @@ export default function WeeklySalesDashboard() {
   // ESC 키로 모달 닫기
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedProduct) {
-        setSelectedProduct(null);
+      if (e.key === 'Escape') {
+        if (selectedProduct) {
+          setSelectedProduct(null);
+        } else if (selectedRegion) {
+          setSelectedRegion(null);
+        }
       }
     };
     
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [selectedProduct]);
+  }, [selectedProduct, selectedRegion]);
 
   if (loading) {
     return (
@@ -459,7 +464,7 @@ export default function WeeklySalesDashboard() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-green-600" />
-              지역별 판매 분석
+              지역별 판매 분석 (클릭하여 매장 보기)
             </h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -471,11 +476,25 @@ export default function WeeklySalesDashboard() {
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매수량</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">점유율</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">매장평균</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">상세</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {data.regionStats.map((region, idx) => (
-                    <tr key={region.region} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <tr 
+                      key={region.region} 
+                      className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-green-50 transition-colors cursor-pointer`}
+                      onClick={() => {
+                        // 해당 지역의 매장들을 매출 높은 순으로 정렬
+                        const regionStores = data.storeStats
+                          .filter(store => store.storeRegion === region.region)
+                          .sort((a, b) => b.sales - a.sales);
+                        setSelectedRegion({
+                          ...region,
+                          stores: regionStores
+                        });
+                      }}
+                    >
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {region.region}
                       </td>
@@ -495,6 +514,11 @@ export default function WeeklySalesDashboard() {
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-700">
                         ₩{Math.round((region.sales / region.storeCount) / 1000).toLocaleString()}K
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button className="text-green-600 hover:text-green-800 text-xs font-medium">
+                          매장보기 ▼
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -792,6 +816,144 @@ export default function WeeklySalesDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 지역별 매장 모달 */}
+      {selectedRegion && selectedRegion.stores && selectedRegion.stores.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedRegion(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* 모달 헤더 */}
+            <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                    <Store className="w-6 h-6" />
+                    {selectedRegion.region} 지역 매장
+                  </h3>
+                  <p className="text-green-50 text-sm font-medium">
+                    총 {selectedRegion.storeCount}개 매장 (매출 높은 순)
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedRegion(null)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* 모달 바디 */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {/* 지역 통계 */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+                  <div className="text-sm text-blue-600 font-medium mb-1">총 판매액</div>
+                  <div className="text-2xl font-bold text-blue-900">
+                    ₩{Math.round(selectedRegion.sales / 1000000).toLocaleString()}M
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
+                  <div className="text-sm text-green-600 font-medium mb-1">총 판매수량</div>
+                  <div className="text-2xl font-bold text-green-900">
+                    {selectedRegion.quantity.toLocaleString()}개
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
+                  <div className="text-sm text-purple-600 font-medium mb-1">매장평균</div>
+                  <div className="text-2xl font-bold text-purple-900">
+                    ₩{Math.round((selectedRegion.sales / selectedRegion.storeCount) / 1000).toLocaleString()}K
+                  </div>
+                </div>
+              </div>
+
+              {/* 매장 목록 테이블 */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gradient-to-r from-green-100 to-teal-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">순위</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">매장명</th>
+                      <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">유형</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">판매액</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">판매수량</th>
+                      <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">점유율</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedRegion.stores.map((store: any, idx: number) => {
+                      const shareInRegion = (store.sales / selectedRegion.sales) * 100;
+                      return (
+                        <tr 
+                          key={store.storeCode} 
+                          className={`${
+                            idx === 0 ? 'bg-yellow-50' : 
+                            idx === 1 ? 'bg-gray-50' : 
+                            idx === 2 ? 'bg-orange-50' : 
+                            idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          } hover:bg-green-100 transition-colors`}
+                        >
+                          <td className="px-4 py-4 text-sm font-bold text-gray-900">
+                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                              idx === 0 ? 'bg-yellow-400 text-yellow-900' :
+                              idx === 1 ? 'bg-gray-400 text-gray-900' :
+                              idx === 2 ? 'bg-orange-400 text-orange-900' :
+                              'bg-green-100 text-green-900'
+                            }`}>
+                              {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-sm font-semibold text-gray-900">
+                            {store.storeName}
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                              {store.storeType}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-sm text-right font-bold text-gray-900">
+                            ₩{Math.round(store.sales / 1000).toLocaleString()}K
+                          </td>
+                          <td className="px-4 py-4 text-sm text-right font-medium text-gray-700">
+                            {store.quantity.toLocaleString()}개
+                          </td>
+                          <td className="px-4 py-4 text-sm text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="bg-green-100 rounded-full h-2 w-20">
+                                <div 
+                                  className="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full transition-all"
+                                  style={{ width: `${shareInRegion}%` }}
+                                />
+                              </div>
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold min-w-[50px] text-center">
+                                {shareInRegion.toFixed(1)}%
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 모달 푸터 */}
+            <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t">
+              <p className="text-sm text-gray-600">
+                💡 {selectedRegion.region} 지역의 전체 {selectedRegion.storeCount}개 매장을 매출 순으로 표시합니다
+              </p>
+              <button
+                onClick={() => setSelectedRegion(null)}
+                className="px-6 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-teal-600 transition-all shadow-md"
+              >
+                닫기
+              </button>
             </div>
           </div>
         </div>
