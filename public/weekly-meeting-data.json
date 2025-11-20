@@ -1,0 +1,69 @@
+{
+  "period": "2025년 46주차",
+  "categories": [
+    {
+      "name": "합계",
+      "yearlyTarget": 315598,
+      "yearlyActual": 289065,
+      "yearlyLastYear": 301329,
+      "yearlyGrowthRate": -0.04,
+      "yearlyAchievementRate": 0.92,
+      "monthlyTarget": 33000,
+      "monthlyActual": 18087,
+      "monthlyLastYear": 16739,
+      "monthlyGrowthRate": 0.08,
+      "monthlyAchievementRate": 0.55,
+      "weeklyActual": 7283,
+      "weeklyLastYear": 6993,
+      "weeklyGrowthRate": 0.04
+    },
+    {
+      "name": "국내",
+      "yearlyTarget": 167559,
+      "yearlyActual": 146387,
+      "yearlyLastYear": 151119,
+      "yearlyGrowthRate": -0.03,
+      "yearlyAchievementRate": 0.87,
+      "monthlyTarget": 18249,
+      "monthlyActual": 9878,
+      "monthlyLastYear": 8690,
+      "monthlyGrowthRate": 0.14,
+      "monthlyAchievementRate": 0.54,
+      "weeklyActual": 3711,
+      "weeklyLastYear": 3746,
+      "weeklyGrowthRate": -0.01
+    },
+    {
+      "name": "면세",
+      "yearlyTarget": 108496,
+      "yearlyActual": 103899,
+      "yearlyLastYear": 120793,
+      "yearlyGrowthRate": -0.14,
+      "yearlyAchievementRate": 0.96,
+      "monthlyTarget": 10600,
+      "monthlyActual": 5854,
+      "monthlyLastYear": 6378,
+      "monthlyGrowthRate": -0.08,
+      "monthlyAchievementRate": 0.55,
+      "weeklyActual": 2648,
+      "weeklyLastYear": 2539,
+      "weeklyGrowthRate": 0.04
+    },
+    {
+      "name": "RF+도매",
+      "yearlyTarget": 39543,
+      "yearlyActual": 38779,
+      "yearlyLastYear": 29417,
+      "yearlyGrowthRate": 0.32,
+      "yearlyAchievementRate": 0.98,
+      "monthlyTarget": 4151,
+      "monthlyActual": 2356,
+      "monthlyLastYear": 1671,
+      "monthlyGrowthRate": 0.41,
+      "monthlyAchievementRate": 0.57,
+      "weeklyActual": 924,
+      "weeklyLastYear": 708,
+      "weeklyGrowthRate": 0.31
+    }
+  ]
+}

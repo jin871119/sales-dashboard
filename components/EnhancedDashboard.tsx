@@ -12,6 +12,7 @@ import SummaryDashboard from "./SummaryDashboard";
 import StoreAreaSelector from "./StoreAreaSelector";
 import WeeklySalesDashboard from "./WeeklySales/WeeklySalesDashboard";
 import SeoulRealtimeDashboard from "./SeoulRealtime/SeoulRealtimeDashboard";
+import WeeklyMeetingSection from "./WeeklyMeeting/WeeklyMeetingSection";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -25,6 +26,7 @@ import {
   MapPin
 } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
+import type { WeeklyMeetingData } from "@/lib/weeklyMeetingReader";
 
 // Plotly를 사용하는 컴포넌트는 동적으로 로드 (SSR 방지)
 const StoreDistributionDashboard = dynamic(
@@ -45,6 +47,7 @@ const StoreDistributionDashboard = dynamic(
 export default function EnhancedDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
+  const [weeklyMeetingData, setWeeklyMeetingData] = useState<WeeklyMeetingData | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details" | "weekly-sales" | "store-distribution" | "seoul-realtime">("overview");
 
   useEffect(() => {
@@ -60,10 +63,26 @@ export default function EnhancedDashboard() {
       }
     }
 
+    async function fetchWeeklyMeetingData() {
+      try {
+        const response = await fetch("/api/weekly-meeting");
+        if (response.ok) {
+          const result = await response.json();
+          setWeeklyMeetingData(result);
+        }
+      } catch (error) {
+        console.error("주간회의 데이터 로딩 실패:", error);
+      }
+    }
+
     fetchDashboardData();
+    fetchWeeklyMeetingData();
     
     // 5분마다 자동 새로고침
-    const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
+    const interval = setInterval(() => {
+      fetchDashboardData();
+      fetchWeeklyMeetingData();
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -261,6 +280,11 @@ export default function EnhancedDashboard() {
             {/* 월별 매출 추이 */}
             <div className="mb-8">
               <SalesChart data={data.monthlySales} />
+            </div>
+
+            {/* 주간회의 실적 요약 */}
+            <div className="mb-8">
+              <WeeklyMeetingSection data={weeklyMeetingData} />
             </div>
 
             {/* 영업 실적 요약 표 */}

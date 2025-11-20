@@ -16,8 +16,10 @@ export async function GET(request: Request) {
     const type = searchParams.get('type') || 'congestion'; // population, commercial, congestion
     
     console.log(`🌆 서울시 실시간 데이터 요청: ${type}`);
+    console.log(`🔑 API 키 값: ${API_KEY === 'sample_key' ? 'sample_key (기본값)' : API_KEY.substring(0, 10) + '...'}`);
     console.log(`🔑 API 키 존재: ${API_KEY !== 'sample_key'}`);
     console.log(`📦 목업 데이터 사용: ${USE_MOCK_DATA}`);
+    console.log(`🌍 환경 변수 체크: NEXT_PUBLIC_SEOUL_RTD_API_KEY = ${process.env.NEXT_PUBLIC_SEOUL_RTD_API_KEY ? '설정됨' : '없음'}`);
     
     // 목업 데이터 모드
     if (USE_MOCK_DATA) {
