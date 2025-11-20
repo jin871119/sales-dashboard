@@ -13,7 +13,17 @@ import {
 } from "lucide-react";
 
 // Plotly를 동적으로 로드 (SSR 방지)
-const Plot = dynamic(() => import('react-plotly.js'), { ssr: false });
+const Plot = dynamic(() => import('react-plotly.js'), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-[700px]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+        <p className="text-lg text-gray-700 font-medium">3D 그래프 로딩 중...</p>
+      </div>
+    </div>
+  )
+});
 
 interface StoreData {
   storeCode: string;
@@ -96,7 +106,8 @@ export default function StoreDistributionDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<WeeklySalesData | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string>("전체");
-  const [viewMode, setViewMode] = useState<"3d" | "map" | "chart">("3d");
+  const [viewMode, setViewMode] = useState<"3d" | "map" | "chart">("chart");
+  const [plotlyError, setPlotlyError] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchData() {
