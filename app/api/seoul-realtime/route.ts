@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 // 서울시 실시간 도시데이터 API
 const API_KEY = process.env.NEXT_PUBLIC_SEOUL_RTD_API_KEY || 'sample_key';
 const BASE_URL = process.env.NEXT_PUBLIC_SEOUL_RTD_BASE_URL || 'http://openapi.seoul.go.kr:8088';
-const USE_MOCK_DATA = process.env.NEXT_PUBLIC_USE_MOCK_SEOUL_DATA === 'true' || !process.env.NEXT_PUBLIC_SEOUL_RTD_API_KEY || process.env.NEXT_PUBLIC_SEOUL_RTD_API_KEY === 'sample_key';
+const USE_MOCK_DATA = false; // 항상 실제 API 사용
 
 // 캐시
 let cachedData: any = null;
@@ -38,20 +38,35 @@ export async function GET(request: Request) {
     
     console.log(`🌆 실제 API 호출 시작`);
     
+    // 서울시 주요 상권 50곳 목록
+    const seoulAreas = [
+      '광화문·덕수궁', '명동', '홍대', '강남역', '잠실', 
+      '이태원', '서울역', '가로수길', '삼청동', '북촌한옥마을',
+      '성수', '해방촌', '경리단길', '신촌', '이화여대',
+      '건대입구', '합정', '망원', '상수', '종로',
+      '동대문', '남대문시장', '명동성당', '광장시장', '낙원상가',
+      '인사동', '익선동', '을지로', '청계천', 'DDP',
+      '코엑스', '삼성역', '선릉역', '역삼역', '논현역',
+      '신사역', '압구정로데오', '청담동', '한남동', '이촌한강공원',
+      '여의도', '마포', '상암DMC', '연남동', '대학로',
+      '혜화역', '성신여대', '한성대입구', '녹사평', '용산'
+    ];
+    
+    let allData: any[] = [];
+    
     let apiUrl = '';
     
     switch (type) {
-      case 'population':
-      case 'congestion':
-        // 서울시 주요 50곳 실시간 도시데이터 (CITYDATA)
-        // 공식 문서: http://openapi.seoul.go.kr:8088/(인증키)/json/citydata/1/5/
-        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata/1/50/`;
-        break;
-        
-      case 'commercial':
-        // 실시간 상권 현황 API
-        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata_stts/1/20/`;
-        break;
+    case 'population':
+    case 'congestion':
+      // PowerShell에서 성공한 엔드포인트 사용 (지역을 지정하지 않으면 여러 지역 반환)
+      apiUrl = `${BASE_URL}/${API_KEY}/json/CITYDATA/1/5/`;
+      break;
+      
+    case 'commercial':
+      // 상권 현황 - 목업 데이터 반환 (API 미지원)
+      console.warn('⚠️ 상권 현황 API는 현재 지원하지 않습니다. 목업 데이터로 반환합니다.');
+      return NextResponse.json(getMockData(type));
         
       default:
         return NextResponse.json(
@@ -65,8 +80,7 @@ export async function GET(request: Request) {
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        'Accept': 'application/json, application/xml',
       },
       cache: 'no-store',
     });
@@ -84,12 +98,20 @@ export async function GET(request: Request) {
     console.log('📄 응답 본문 샘플:', responseText.substring(0, 200));
     
     let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError: any) {
-      console.error('❌ JSON 파싱 오류:', parseError);
-      console.error('응답 내용:', responseText.substring(0, 500));
-      throw new Error(`API 응답이 JSON 형식이 아닙니다. API 키와 엔드포인트를 확인하세요.`);
+    
+    // XML 응답 처리
+    if (responseText.trim().startsWith('<')) {
+      console.log('📄 XML 응답 감지 - 파싱 시작');
+      data = parseXmlResponse(responseText, type);
+    } else {
+      // JSON 응답 처리
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError: any) {
+        console.error('❌ JSON 파싱 오류:', parseError);
+        console.error('응답 내용:', responseText.substring(0, 500));
+        throw new Error(`API 응답 파싱 실패. 응답 내용을 확인하세요.`);
+      }
     }
     
     // API 응답 구조 확인
@@ -126,6 +148,89 @@ export async function GET(request: Request) {
   }
 }
 
+// XML 응답 파싱
+function parseXmlResponse(xmlText: string, type: string): any {
+  console.log('🔍 XML 파싱 시작');
+  
+  try {
+    // 간단한 XML 파싱 (정규식 사용)
+    const areas: any[] = [];
+    
+    // <CITYDATA> 태그로 각 지역 데이터 분리
+    const citydataMatches = xmlText.match(/<CITYDATA>[\s\S]*?<\/CITYDATA>/g);
+    
+    if (!citydataMatches) {
+      console.log('⚠️ CITYDATA 태그를 찾을 수 없음');
+      return { CITYDATA: [] };
+    }
+    
+    console.log(`📊 발견된 지역 수: ${citydataMatches.length}`);
+    
+    citydataMatches.forEach((citydata, index) => {
+      try {
+        const area: any = {
+          AREA_NM: extractValue(citydata, 'AREA_NM'),
+          AREA_CD: extractValue(citydata, 'AREA_CD'),
+        };
+        
+        // 실시간 인구 데이터
+        const liveData = citydata.match(/<LIVE_PPLTN_STTS>([\s\S]*?)<\/LIVE_PPLTN_STTS>/);
+        if (liveData) {
+          const liveContent = liveData[1];
+          area.AREA_CONGEST_LVL = extractValue(liveContent, 'AREA_CONGEST_LVL');
+          area.AREA_CONGEST_MSG = extractValue(liveContent, 'AREA_CONGEST_MSG');
+          area.AREA_PPLTN_MIN = extractValue(liveContent, 'AREA_PPLTN_MIN');
+          area.AREA_PPLTN_MAX = extractValue(liveContent, 'AREA_PPLTN_MAX');
+          area.MALE_PPLTN_RATE = extractValue(liveContent, 'MALE_PPLTN_RATE');
+          area.FEMALE_PPLTN_RATE = extractValue(liveContent, 'FEMALE_PPLTN_RATE');
+          area.PPLTN_RATE_0 = extractValue(liveContent, 'PPLTN_RATE_0');
+          area.PPLTN_RATE_10 = extractValue(liveContent, 'PPLTN_RATE_10');
+          area.PPLTN_RATE_20 = extractValue(liveContent, 'PPLTN_RATE_20');
+          area.PPLTN_RATE_30 = extractValue(liveContent, 'PPLTN_RATE_30');
+          area.PPLTN_RATE_40 = extractValue(liveContent, 'PPLTN_RATE_40');
+          area.PPLTN_RATE_50 = extractValue(liveContent, 'PPLTN_RATE_50');
+          area.PPLTN_RATE_60 = extractValue(liveContent, 'PPLTN_RATE_60');
+          area.PPLTN_RATE_70 = extractValue(liveContent, 'PPLTN_RATE_70');
+          area.PPLTN_TIME = extractValue(liveContent, 'PPLTN_TIME');
+        }
+        
+        // 도로 교통 데이터
+        const roadData = citydata.match(/<AVG_ROAD_DATA>([\s\S]*?)<\/AVG_ROAD_DATA>/);
+        if (roadData) {
+          const roadContent = roadData[1];
+          area.ROAD_TRAFFIC_IDX = extractValue(roadContent, 'ROAD_TRAFFIC_IDX');
+          area.ROAD_TRAFFIC_SPD = extractValue(roadContent, 'ROAD_TRAFFIC_SPD');
+        }
+        
+        areas.push(area);
+        console.log(`✅ 지역 ${index + 1} 파싱 완료: ${area.AREA_NM}`);
+      } catch (err) {
+        console.error(`❌ 지역 ${index + 1} 파싱 오류:`, err);
+      }
+    });
+    
+    console.log(`✅ 총 ${areas.length}개 지역 파싱 완료`);
+    
+    return {
+      CITYDATA: areas
+    };
+    
+  } catch (error: any) {
+    console.error('❌ XML 파싱 실패:', error);
+    throw new Error(`XML 파싱 실패: ${error.message}`);
+  }
+}
+
+// XML 태그에서 값 추출
+function extractValue(xml: string, tagName: string): string {
+  const regex = new RegExp(`<${tagName}><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tagName}>|<${tagName}>([\\s\\S]*?)</${tagName}>`);
+  const match = xml.match(regex);
+  if (match) {
+    return (match[1] || match[2] || '').trim();
+  }
+  return '';
+}
+
 // 데이터 가공 함수
 function processSeoulData(raw: any, type: string) {
   try {
@@ -133,7 +238,7 @@ function processSeoulData(raw: any, type: string) {
       case 'population':
       case 'congestion':
         // 서울시 CITYDATA API 응답 구조
-        // CITYDATA.RESULT, CITYDATA.list_total_count, CITYDATA.row 등
+        // XML 파싱 결과: CITYDATA 배열 또는 JSON 구조
         const cityData = raw.CITYDATA || raw.citydata;
         
         if (!cityData) {
@@ -147,12 +252,13 @@ function processSeoulData(raw: any, type: string) {
           };
         }
         
-        // RESULT 코드 확인
+        // RESULT 코드 확인 (JSON 응답인 경우)
         if (cityData.RESULT) {
           console.log('📊 API RESULT:', cityData.RESULT);
         }
         
-        const rows = cityData.row || [];
+        // XML 파싱 결과는 배열, JSON 응답은 cityData.row
+        const rows = Array.isArray(cityData) ? cityData : (cityData.row || []);
         
         if (rows.length === 0) {
           console.warn('⚠️ 데이터 행이 비어있음');
@@ -165,6 +271,8 @@ function processSeoulData(raw: any, type: string) {
           };
         }
         
+        console.log(`✅ 처리할 지역 데이터: ${rows.length}개`);
+        
         const areas = rows.map((item: any) => ({
           name: item.AREA_NM || item.area_nm || '알 수 없음',
           congestionLevel: item.AREA_CONGEST_LVL || item.area_congest_lvl || '보통',
@@ -173,6 +281,8 @@ function processSeoulData(raw: any, type: string) {
           populationMax: parseInt(item.AREA_PPLTN_MAX || item.area_ppltn_max || '0'),
           updateTime: item.PPLTN_TIME || item.ppltn_time || new Date().toISOString()
         }));
+        
+        console.log(`✅ 가공 완료: ${areas.length}개 지역`);
         
         return {
           areas,

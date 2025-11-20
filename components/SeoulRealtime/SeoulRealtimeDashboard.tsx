@@ -180,17 +180,12 @@ export default function SeoulRealtimeDashboard() {
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
               🌆 서울시 실시간 도시데이터
-              {data?.isMockData && (
-                <span className="text-sm font-normal px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full">
-                  📦 데모 모드
-                </span>
-              )}
             </h2>
             <p className="text-gray-600">
               마지막 업데이트: {lastUpdate}
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              총 {summary.totalAreas}개 지역 {data?.isMockData ? '(샘플 데이터)' : '실시간 모니터링'}
+              총 {summary.totalAreas}개 지역 실시간 모니터링
             </p>
           </div>
           <button
