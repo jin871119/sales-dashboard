@@ -1,0 +1,1578 @@
+{
+  "totalStores": 192,
+  "storeTypes": {
+    "백화점": {
+      "count": 60,
+      "stores": [
+        "갤러리아진주",
+        "롯데강남",
+        "롯데일산",
+        "롯데건대",
+        "롯데분당",
+        "현대울산동구",
+        "롯데청량리",
+        "신세계경기",
+        "롯데광복",
+        "신세계센텀",
+        "현대킨텍스",
+        "갤러리아센터시티",
+        "현대대구",
+        "현대울산",
+        "롯데김포",
+        "롯데평촌",
+        "AK원주",
+        "신세계의정부",
+        "현대신촌",
+        "현대충청",
+        "롯데구리",
+        "롯데안산",
+        "롯데중동",
+        "롯데노원",
+        "롯데수원",
+        "신세계하남",
+        "더현대서울",
+        "현대판교",
+        "신세계강남",
+        "신세계대구",
+        "신세계김해",
+        "신세계본점",
+        "롯데인천",
+        "갤러리아광교",
+        "AK평택",
+        "신세계대전",
+        "롯데동탄",
+        "신세계영등포",
+        "신세계광주",
+        "롯데광주",
+        "현대천호",
+        "롯데잠실",
+        "롯데부산",
+        "롯데대전",
+        "롯데울산",
+        "현대미아",
+        "롯데본점",
+        "AK수원",
+        "롯데영등포",
+        "현대중동",
+        "신세계천안아산",
+        "롯데창원",
+        "롯데대구",
+        "롯데상인",
+        "롯데전주",
+        "롯데포항",
+        "롯데동래",
+        "갤러리아대전",
+        "신세계마산",
+        "롯데미아"
+      ]
+    },
+    "직영점": {
+      "count": 16,
+      "stores": [
+        "타임스퀘어영등포(직)",
+        "온라인쇼핑몰(직)",
+        "충장로(직)",
+        "동성로(직)",
+        "가로수길(직)",
+        "홍대(직)",
+        "명동중앙(직)",
+        "강남사옥(직)",
+        "스타필드안성(직)",
+        "롯데아울렛의왕(직)",
+        "타임스트림신림(직)",
+        "타임테라스동탄(직)",
+        "스타필드하남(직)",
+        "스타필드수원(직)",
+        "한남(직)",
+        "성수(직)"
+      ]
+    },
+    "대리점": {
+      "count": 62,
+      "stores": [
+        "세정광주(대-위)",
+        "시흥(대-위)",
+        "원주(대-위)",
+        "오산(대-위)",
+        "통영(대-위)",
+        "익산(대-위)",
+        "목포하당(대-위)",
+        "전주송천(대-위)",
+        "보령(대-위)",
+        "충주(대-위)",
+        "대구성서(대-위)",
+        "안산시화(대-위)",
+        "화성봉담(대-위)",
+        "안산중앙(대-위)",
+        "제천(대-위)",
+        "스퀘어원인천(대-위)",
+        "영주(대-위)",
+        "상주(대-위)",
+        "아이즈빌부평(대-위)",
+        "정읍(대-위)",
+        "남원(대-위)",
+        "부천(대-위)",
+        "아산(대-위)",
+        "홍성(대-위)",
+        "성남신흥(대-위)",
+        "광명(대-위)",
+        "해남(대-위)",
+        "대구칠곡(대-위)",
+        "안성(대-위)",
+        "울산무거(대-위)",
+        "경기광주(대-위)",
+        "대전은행(대-위)",
+        "속초(대-위)",
+        "당진(대-위)",
+        "나주(대-위)",
+        "마산합성(대-위)",
+        "춘천(대-위)",
+        "포천(대-위)",
+        "두타(대-위)",
+        "남양주삼패(대-위)",
+        "포항(대-위)",
+        "인천(대-위)",
+        "부산광복(대-위)",
+        "여수(대-위)",
+        "제주(대-위)",
+        "전주중앙(대-위)",
+        "서산(대-위)",
+        "안동(대-위)",
+        "안산한대(대-위)",
+        "김포장기(대-위)",
+        "여천(대-위)",
+        "청주(대-위)",
+        "서귀포(대-위)",
+        "거제(대-위)",
+        "구미(대-위)",
+        "동해(대-위)",
+        "강릉(대-위)",
+        "순천연향(대-위)",
+        "신제주(대-위)",
+        "구미인동(대-위)",
+        "퍼스트빌리지(대-위)",
+        "경산(대-위)"
+      ]
+    },
+    "제휴몰": {
+      "count": 9,
+      "stores": [
+        "무신사(제휴몰)",
+        "네이버스토어(제휴몰)",
+        "카카오선물하기(제휴몰)",
+        "29CM(제휴몰)",
+        "SSG닷컴(제휴몰)",
+        "롯데ON(제휴몰)",
+        "SSF샵(제휴몰)",
+        "CJ온스타일(제휴몰)",
+        "GS SHOP(제휴몰)"
+      ]
+    },
+    "아울렛": {
+      "count": 31,
+      "stores": [
+        "모다아울렛대전close",
+        "모다아울렛천안",
+        "롯데아울렛수완(상-위)",
+        "롯데아울렛동부산(상-위)",
+        "롯데아울렛봉무(상-위)",
+        "롯데아울렛부여(상-위)",
+        "현대아울렛동대문(상-위)",
+        "현대아울렛가든5(상-위)",
+        "NC강서(상-위)",
+        "NC송파(상-위)",
+        "신세계아울렛시흥(상-위)",
+        "신세계아울렛여주(상-위)",
+        "마리오(상-위)",
+        "신세계아울렛파주(상-위)",
+        "현대아울렛가산(상-위)",
+        "콜렉티드(상-위)",
+        "롯데아울렛김해(상-위)",
+        "신세계아울렛기장(상-위)",
+        "모다경주(상-위)",
+        "롯데아울렛청주(상-위)",
+        "롯데아울렛진주(상-위)",
+        "LF스퀘어광양(상-위)",
+        "LF스퀘어양주(상-위)",
+        "현대아울렛대전(상-위)",
+        "롯데아울렛이천(상-위)",
+        "현대아울렛대구(상-위)",
+        "현대아울렛김포(상-위)",
+        "롯데아울렛율하(상-위)",
+        "롯데아울렛기흥(상-위)",
+        "롯데아울렛파주(상-위)",
+        "롯데아울렛군산(상-위)"
+      ]
+    },
+    "면세점": {
+      "count": 8,
+      "stores": [
+        "롯데면세제주",
+        "신라면세용산",
+        "신라면세제주",
+        "롯데면세월드",
+        "신라면세장충",
+        "롯데면세소공",
+        "신세계면세명동",
+        "현대면세무역"
+      ]
+    },
+    "기타": {
+      "count": 6,
+      "stores": [
+        "엔터식스왕십리",
+        "에버세이브청주",
+        "엔터식스안양",
+        "아이파크용산",
+        "MLB 쇼피파이 글로벌",
+        "온라인완주"
+      ]
+    }
+  },
+  "allStores": [
+    {
+      "name": "롯데면세소공",
+      "code": "429",
+      "records": 272,
+      "totalSales": 1691840300,
+      "totalQuantity": 26968
+    },
+    {
+      "name": "신라면세장충",
+      "code": "428",
+      "records": 230,
+      "totalSales": 1585323100,
+      "totalQuantity": 29437
+    },
+    {
+      "name": "신라면세용산",
+      "code": "422",
+      "records": 238,
+      "totalSales": 1378918500,
+      "totalQuantity": 24994
+    },
+    {
+      "name": "현대면세무역",
+      "code": "443",
+      "records": 254,
+      "totalSales": 996356800,
+      "totalQuantity": 22105
+    },
+    {
+      "name": "신세계면세명동",
+      "code": "431",
+      "records": 192,
+      "totalSales": 795665000,
+      "totalQuantity": 13749
+    },
+    {
+      "name": "명동중앙(직)",
+      "code": "527",
+      "records": 505,
+      "totalSales": 710593600,
+      "totalQuantity": 9265
+    },
+    {
+      "name": "무신사(제휴몰)",
+      "code": "8001",
+      "records": 331,
+      "totalSales": 705017200,
+      "totalQuantity": 8934
+    },
+    {
+      "name": "온라인쇼핑몰(직)",
+      "code": "510",
+      "records": 834,
+      "totalSales": 617445630,
+      "totalQuantity": 6869
+    },
+    {
+      "name": "성수(직)",
+      "code": "540",
+      "records": 576,
+      "totalSales": 442964200,
+      "totalQuantity": 5527
+    },
+    {
+      "name": "롯데본점",
+      "code": "155",
+      "records": 381,
+      "totalSales": 404458900,
+      "totalQuantity": 2399
+    },
+    {
+      "name": "성남신흥(대-위)",
+      "code": "6031",
+      "records": 436,
+      "totalSales": 389438296,
+      "totalQuantity": 8045
+    },
+    {
+      "name": "신라면세제주",
+      "code": "426",
+      "records": 222,
+      "totalSales": 292285100,
+      "totalQuantity": 5906
+    },
+    {
+      "name": "남양주삼패(대-위)",
+      "code": "6049",
+      "records": 213,
+      "totalSales": 291554549,
+      "totalQuantity": 2104
+    },
+    {
+      "name": "네이버스토어(제휴몰)",
+      "code": "8003",
+      "records": 335,
+      "totalSales": 286313900,
+      "totalQuantity": 3696
+    },
+    {
+      "name": "현대판교",
+      "code": "078",
+      "records": 447,
+      "totalSales": 271658600,
+      "totalQuantity": 2284
+    },
+    {
+      "name": "롯데면세월드",
+      "code": "427",
+      "records": 107,
+      "totalSales": 249504100,
+      "totalQuantity": 4262
+    },
+    {
+      "name": "롯데면세제주",
+      "code": "421",
+      "records": 200,
+      "totalSales": 233874500,
+      "totalQuantity": 3544
+    },
+    {
+      "name": "롯데부산",
+      "code": "120",
+      "records": 412,
+      "totalSales": 227943600,
+      "totalQuantity": 2848
+    },
+    {
+      "name": "광명(대-위)",
+      "code": "6033",
+      "records": 255,
+      "totalSales": 223580452,
+      "totalQuantity": 4330
+    },
+    {
+      "name": "롯데잠실",
+      "code": "118",
+      "records": 337,
+      "totalSales": 220481400,
+      "totalQuantity": 1740
+    },
+    {
+      "name": "신세계본점",
+      "code": "082",
+      "records": 266,
+      "totalSales": 207420200,
+      "totalQuantity": 1709
+    },
+    {
+      "name": "아이즈빌부평(대-위)",
+      "code": "6024",
+      "records": 224,
+      "totalSales": 207169200,
+      "totalQuantity": 2067
+    },
+    {
+      "name": "부산광복(대-위)",
+      "code": "649",
+      "records": 706,
+      "totalSales": 204295600,
+      "totalQuantity": 3200
+    },
+    {
+      "name": "청주(대-위)",
+      "code": "729",
+      "records": 217,
+      "totalSales": 191845700,
+      "totalQuantity": 2573
+    },
+    {
+      "name": "가로수길(직)",
+      "code": "524",
+      "records": 360,
+      "totalSales": 176151600,
+      "totalQuantity": 2346
+    },
+    {
+      "name": "온라인완주",
+      "code": "954",
+      "records": 24,
+      "totalSales": 156250080,
+      "totalQuantity": 3994
+    },
+    {
+      "name": "대전은행(대-위)",
+      "code": "6040",
+      "records": 225,
+      "totalSales": 148344500,
+      "totalQuantity": 3550
+    },
+    {
+      "name": "신세계강남",
+      "code": "079",
+      "records": 444,
+      "totalSales": 141441800,
+      "totalQuantity": 1344
+    },
+    {
+      "name": "갤러리아대전",
+      "code": "177",
+      "records": 275,
+      "totalSales": 139173500,
+      "totalQuantity": 1099
+    },
+    {
+      "name": "롯데노원",
+      "code": "045",
+      "records": 268,
+      "totalSales": 131450300,
+      "totalQuantity": 1130
+    },
+    {
+      "name": "29CM(제휴몰)",
+      "code": "8007",
+      "records": 201,
+      "totalSales": 125178700,
+      "totalQuantity": 1718
+    },
+    {
+      "name": "롯데인천",
+      "code": "084",
+      "records": 365,
+      "totalSales": 124288300,
+      "totalQuantity": 1468
+    },
+    {
+      "name": "화성봉담(대-위)",
+      "code": "6017",
+      "records": 216,
+      "totalSales": 122131982,
+      "totalQuantity": 1092
+    },
+    {
+      "name": "AK원주",
+      "code": "036",
+      "records": 329,
+      "totalSales": 120003500,
+      "totalQuantity": 1082
+    },
+    {
+      "name": "아이파크용산",
+      "code": "193",
+      "records": 396,
+      "totalSales": 115983400,
+      "totalQuantity": 1244
+    },
+    {
+      "name": "현대충청",
+      "code": "040",
+      "records": 223,
+      "totalSales": 112017800,
+      "totalQuantity": 828
+    },
+    {
+      "name": "현대킨텍스",
+      "code": "025",
+      "records": 242,
+      "totalSales": 106741000,
+      "totalQuantity": 858
+    },
+    {
+      "name": "롯데수원",
+      "code": "048",
+      "records": 435,
+      "totalSales": 106175500,
+      "totalQuantity": 958
+    },
+    {
+      "name": "현대중동",
+      "code": "164",
+      "records": 203,
+      "totalSales": 105947300,
+      "totalQuantity": 929
+    },
+    {
+      "name": "롯데건대",
+      "code": "010",
+      "records": 166,
+      "totalSales": 105932000,
+      "totalQuantity": 800
+    },
+    {
+      "name": "신제주(대-위)",
+      "code": "744",
+      "records": 385,
+      "totalSales": 103299907,
+      "totalQuantity": 1244
+    },
+    {
+      "name": "더현대서울",
+      "code": "053",
+      "records": 273,
+      "totalSales": 102060400,
+      "totalQuantity": 1057
+    },
+    {
+      "name": "카카오선물하기(제휴몰)",
+      "code": "8005",
+      "records": 64,
+      "totalSales": 101716300,
+      "totalQuantity": 2647
+    },
+    {
+      "name": "현대울산",
+      "code": "032",
+      "records": 354,
+      "totalSales": 100844500,
+      "totalQuantity": 904
+    },
+    {
+      "name": "롯데울산",
+      "code": "146",
+      "records": 398,
+      "totalSales": 99532300,
+      "totalQuantity": 787
+    },
+    {
+      "name": "홍대(직)",
+      "code": "526",
+      "records": 272,
+      "totalSales": 99240900,
+      "totalQuantity": 1306
+    },
+    {
+      "name": "AK수원",
+      "code": "159",
+      "records": 207,
+      "totalSales": 98328700,
+      "totalQuantity": 1464
+    },
+    {
+      "name": "롯데평촌",
+      "code": "035",
+      "records": 320,
+      "totalSales": 97695600,
+      "totalQuantity": 740
+    },
+    {
+      "name": "롯데창원",
+      "code": "167",
+      "records": 291,
+      "totalSales": 95201900,
+      "totalQuantity": 1031
+    },
+    {
+      "name": "강남사옥(직)",
+      "code": "529",
+      "records": 397,
+      "totalSales": 91871100,
+      "totalQuantity": 905
+    },
+    {
+      "name": "SSF샵(제휴몰)",
+      "code": "8010",
+      "records": 163,
+      "totalSales": 88218100,
+      "totalQuantity": 863
+    },
+    {
+      "name": "신세계대구",
+      "code": "080",
+      "records": 288,
+      "totalSales": 82841200,
+      "totalQuantity": 985
+    },
+    {
+      "name": "현대대구",
+      "code": "031",
+      "records": 260,
+      "totalSales": 82311800,
+      "totalQuantity": 859
+    },
+    {
+      "name": "롯데ON(제휴몰)",
+      "code": "8009",
+      "records": 221,
+      "totalSales": 81445200,
+      "totalQuantity": 1037
+    },
+    {
+      "name": "SSG닷컴(제휴몰)",
+      "code": "8008",
+      "records": 195,
+      "totalSales": 80338000,
+      "totalQuantity": 701
+    },
+    {
+      "name": "충장로(직)",
+      "code": "513",
+      "records": 312,
+      "totalSales": 79609200,
+      "totalQuantity": 739
+    },
+    {
+      "name": "원주(대-위)",
+      "code": "6003",
+      "records": 327,
+      "totalSales": 78501900,
+      "totalQuantity": 608
+    },
+    {
+      "name": "한남(직)",
+      "code": "537",
+      "records": 282,
+      "totalSales": 78410900,
+      "totalQuantity": 978
+    },
+    {
+      "name": "롯데강남",
+      "code": "006",
+      "records": 114,
+      "totalSales": 77951900,
+      "totalQuantity": 460
+    },
+    {
+      "name": "타임스퀘어영등포(직)",
+      "code": "509",
+      "records": 297,
+      "totalSales": 77675000,
+      "totalQuantity": 745
+    },
+    {
+      "name": "롯데일산",
+      "code": "007",
+      "records": 288,
+      "totalSales": 75350400,
+      "totalQuantity": 737
+    },
+    {
+      "name": "스퀘어원인천(대-위)",
+      "code": "6021",
+      "records": 309,
+      "totalSales": 71484573,
+      "totalQuantity": 666
+    },
+    {
+      "name": "당진(대-위)",
+      "code": "6043",
+      "records": 244,
+      "totalSales": 70007294,
+      "totalQuantity": 437
+    },
+    {
+      "name": "순천연향(대-위)",
+      "code": "740",
+      "records": 396,
+      "totalSales": 69316259,
+      "totalQuantity": 635
+    },
+    {
+      "name": "롯데김포",
+      "code": "034",
+      "records": 259,
+      "totalSales": 68800500,
+      "totalQuantity": 809
+    },
+    {
+      "name": "현대신촌",
+      "code": "039",
+      "records": 294,
+      "totalSales": 68479200,
+      "totalQuantity": 765
+    },
+    {
+      "name": "롯데영등포",
+      "code": "161",
+      "records": 297,
+      "totalSales": 67771700,
+      "totalQuantity": 641
+    },
+    {
+      "name": "스타필드하남(직)",
+      "code": "535",
+      "records": 260,
+      "totalSales": 67659100,
+      "totalQuantity": 718
+    },
+    {
+      "name": "퍼스트빌리지(대-위)",
+      "code": "746",
+      "records": 289,
+      "totalSales": 67209100,
+      "totalQuantity": 559
+    },
+    {
+      "name": "목포하당(대-위)",
+      "code": "6008",
+      "records": 298,
+      "totalSales": 67023642,
+      "totalQuantity": 540
+    },
+    {
+      "name": "대구성서(대-위)",
+      "code": "6015",
+      "records": 315,
+      "totalSales": 64650365,
+      "totalQuantity": 528
+    },
+    {
+      "name": "두타(대-위)",
+      "code": "6048",
+      "records": 233,
+      "totalSales": 64158740,
+      "totalQuantity": 543
+    },
+    {
+      "name": "롯데안산",
+      "code": "043",
+      "records": 243,
+      "totalSales": 63030100,
+      "totalQuantity": 543
+    },
+    {
+      "name": "AK평택",
+      "code": "086",
+      "records": 293,
+      "totalSales": 62327500,
+      "totalQuantity": 572
+    },
+    {
+      "name": "스타필드안성(직)",
+      "code": "531",
+      "records": 233,
+      "totalSales": 62116100,
+      "totalQuantity": 594
+    },
+    {
+      "name": "안산한대(대-위)",
+      "code": "696",
+      "records": 279,
+      "totalSales": 60551800,
+      "totalQuantity": 577
+    },
+    {
+      "name": "현대미아",
+      "code": "147",
+      "records": 157,
+      "totalSales": 60388600,
+      "totalQuantity": 594
+    },
+    {
+      "name": "신세계의정부",
+      "code": "037",
+      "records": 228,
+      "totalSales": 59845500,
+      "totalQuantity": 566
+    },
+    {
+      "name": "신세계센텀",
+      "code": "022",
+      "records": 309,
+      "totalSales": 59360500,
+      "totalQuantity": 914
+    },
+    {
+      "name": "경산(대-위)",
+      "code": "749",
+      "records": 295,
+      "totalSales": 58666010,
+      "totalQuantity": 462
+    },
+    {
+      "name": "포항(대-위)",
+      "code": "630",
+      "records": 273,
+      "totalSales": 58570310,
+      "totalQuantity": 521
+    },
+    {
+      "name": "안산시화(대-위)",
+      "code": "6016",
+      "records": 338,
+      "totalSales": 57902379,
+      "totalQuantity": 485
+    },
+    {
+      "name": "롯데청량리",
+      "code": "016",
+      "records": 246,
+      "totalSales": 54807800,
+      "totalQuantity": 685
+    },
+    {
+      "name": "롯데중동",
+      "code": "044",
+      "records": 275,
+      "totalSales": 53994900,
+      "totalQuantity": 447
+    },
+    {
+      "name": "신세계천안아산",
+      "code": "165",
+      "records": 238,
+      "totalSales": 52640500,
+      "totalQuantity": 585
+    },
+    {
+      "name": "동해(대-위)",
+      "code": "737",
+      "records": 292,
+      "totalSales": 52065227,
+      "totalQuantity": 485
+    },
+    {
+      "name": "익산(대-위)",
+      "code": "6007",
+      "records": 354,
+      "totalSales": 51786987,
+      "totalQuantity": 470
+    },
+    {
+      "name": "신세계광주",
+      "code": "097",
+      "records": 240,
+      "totalSales": 51027500,
+      "totalQuantity": 538
+    },
+    {
+      "name": "속초(대-위)",
+      "code": "6042",
+      "records": 299,
+      "totalSales": 50848888,
+      "totalQuantity": 473
+    },
+    {
+      "name": "신세계영등포",
+      "code": "094",
+      "records": 231,
+      "totalSales": 50771700,
+      "totalQuantity": 481
+    },
+    {
+      "name": "롯데대전",
+      "code": "129",
+      "records": 182,
+      "totalSales": 49909200,
+      "totalQuantity": 423
+    },
+    {
+      "name": "춘천(대-위)",
+      "code": "6046",
+      "records": 306,
+      "totalSales": 49903656,
+      "totalQuantity": 524
+    },
+    {
+      "name": "구미(대-위)",
+      "code": "736",
+      "records": 276,
+      "totalSales": 49590600,
+      "totalQuantity": 510
+    },
+    {
+      "name": "롯데전주",
+      "code": "170",
+      "records": 304,
+      "totalSales": 49006900,
+      "totalQuantity": 504
+    },
+    {
+      "name": "안산중앙(대-위)",
+      "code": "6019",
+      "records": 203,
+      "totalSales": 48429208,
+      "totalQuantity": 374
+    },
+    {
+      "name": "포천(대-위)",
+      "code": "6047",
+      "records": 123,
+      "totalSales": 47760400,
+      "totalQuantity": 300
+    },
+    {
+      "name": "거제(대-위)",
+      "code": "735",
+      "records": 284,
+      "totalSales": 47755400,
+      "totalQuantity": 454
+    },
+    {
+      "name": "엔터식스안양",
+      "code": "093",
+      "records": 268,
+      "totalSales": 47399000,
+      "totalQuantity": 610
+    },
+    {
+      "name": "제주(대-위)",
+      "code": "676",
+      "records": 276,
+      "totalSales": 47134500,
+      "totalQuantity": 553
+    },
+    {
+      "name": "GS SHOP(제휴몰)",
+      "code": "8012",
+      "records": 132,
+      "totalSales": 46874700,
+      "totalQuantity": 486
+    },
+    {
+      "name": "전주중앙(대-위)",
+      "code": "685",
+      "records": 251,
+      "totalSales": 46760710,
+      "totalQuantity": 426
+    },
+    {
+      "name": "마산합성(대-위)",
+      "code": "6045",
+      "records": 278,
+      "totalSales": 46402629,
+      "totalQuantity": 381
+    },
+    {
+      "name": "스타필드수원(직)",
+      "code": "536",
+      "records": 226,
+      "totalSales": 46104500,
+      "totalQuantity": 629
+    },
+    {
+      "name": "신세계하남",
+      "code": "052",
+      "records": 186,
+      "totalSales": 45267000,
+      "totalQuantity": 424
+    },
+    {
+      "name": "신세계경기",
+      "code": "019",
+      "records": 195,
+      "totalSales": 45253700,
+      "totalQuantity": 492
+    },
+    {
+      "name": "제천(대-위)",
+      "code": "6020",
+      "records": 233,
+      "totalSales": 44569078,
+      "totalQuantity": 354
+    },
+    {
+      "name": "오산(대-위)",
+      "code": "6004",
+      "records": 255,
+      "totalSales": 43654661,
+      "totalQuantity": 368
+    },
+    {
+      "name": "신세계대전",
+      "code": "088",
+      "records": 200,
+      "totalSales": 41408700,
+      "totalQuantity": 433
+    },
+    {
+      "name": "김포장기(대-위)",
+      "code": "717",
+      "records": 222,
+      "totalSales": 41055300,
+      "totalQuantity": 393
+    },
+    {
+      "name": "갤러리아센터시티",
+      "code": "027",
+      "records": 143,
+      "totalSales": 40788500,
+      "totalQuantity": 297
+    },
+    {
+      "name": "부천(대-위)",
+      "code": "6028",
+      "records": 266,
+      "totalSales": 40279855,
+      "totalQuantity": 325
+    },
+    {
+      "name": "충주(대-위)",
+      "code": "6013",
+      "records": 178,
+      "totalSales": 39630100,
+      "totalQuantity": 325
+    },
+    {
+      "name": "동성로(직)",
+      "code": "521",
+      "records": 227,
+      "totalSales": 39602500,
+      "totalQuantity": 513
+    },
+    {
+      "name": "모다아울렛천안",
+      "code": "096",
+      "records": 210,
+      "totalSales": 39583000,
+      "totalQuantity": 372
+    },
+    {
+      "name": "강릉(대-위)",
+      "code": "738",
+      "records": 209,
+      "totalSales": 39392100,
+      "totalQuantity": 414
+    },
+    {
+      "name": "롯데포항",
+      "code": "174",
+      "records": 212,
+      "totalSales": 39233010,
+      "totalQuantity": 359
+    },
+    {
+      "name": "롯데동래",
+      "code": "175",
+      "records": 224,
+      "totalSales": 38790810,
+      "totalQuantity": 430
+    },
+    {
+      "name": "롯데동탄",
+      "code": "089",
+      "records": 268,
+      "totalSales": 38740700,
+      "totalQuantity": 579
+    },
+    {
+      "name": "갤러리아광교",
+      "code": "085",
+      "records": 154,
+      "totalSales": 38334600,
+      "totalQuantity": 365
+    },
+    {
+      "name": "롯데아울렛의왕(직)",
+      "code": "532",
+      "records": 193,
+      "totalSales": 38063100,
+      "totalQuantity": 444
+    },
+    {
+      "name": "롯데광주",
+      "code": "112",
+      "records": 233,
+      "totalSales": 38003530,
+      "totalQuantity": 371
+    },
+    {
+      "name": "세정광주(대-위)",
+      "code": "6001",
+      "records": 266,
+      "totalSales": 37497800,
+      "totalQuantity": 365
+    },
+    {
+      "name": "롯데광복",
+      "code": "021",
+      "records": 219,
+      "totalSales": 37371810,
+      "totalQuantity": 426
+    },
+    {
+      "name": "나주(대-위)",
+      "code": "6044",
+      "records": 225,
+      "totalSales": 37092103,
+      "totalQuantity": 308
+    },
+    {
+      "name": "신세계김해",
+      "code": "081",
+      "records": 201,
+      "totalSales": 36281800,
+      "totalQuantity": 391
+    },
+    {
+      "name": "에버세이브청주",
+      "code": "091",
+      "records": 246,
+      "totalSales": 35874700,
+      "totalQuantity": 345
+    },
+    {
+      "name": "서귀포(대-위)",
+      "code": "733",
+      "records": 259,
+      "totalSales": 35456533,
+      "totalQuantity": 403
+    },
+    {
+      "name": "아산(대-위)",
+      "code": "6029",
+      "records": 230,
+      "totalSales": 35250800,
+      "totalQuantity": 300
+    },
+    {
+      "name": "엔터식스왕십리",
+      "code": "054",
+      "records": 167,
+      "totalSales": 34360000,
+      "totalQuantity": 347
+    },
+    {
+      "name": "상주(대-위)",
+      "code": "6023",
+      "records": 143,
+      "totalSales": 34304368,
+      "totalQuantity": 210
+    },
+    {
+      "name": "롯데구리",
+      "code": "042",
+      "records": 214,
+      "totalSales": 33206420,
+      "totalQuantity": 379
+    },
+    {
+      "name": "현대천호",
+      "code": "114",
+      "records": 185,
+      "totalSales": 32848200,
+      "totalQuantity": 348
+    },
+    {
+      "name": "서산(대-위)",
+      "code": "688",
+      "records": 219,
+      "totalSales": 31769400,
+      "totalQuantity": 319
+    },
+    {
+      "name": "여수(대-위)",
+      "code": "661",
+      "records": 224,
+      "totalSales": 31177202,
+      "totalQuantity": 318
+    },
+    {
+      "name": "롯데대구",
+      "code": "168",
+      "records": 191,
+      "totalSales": 30486100,
+      "totalQuantity": 269
+    },
+    {
+      "name": "롯데상인",
+      "code": "169",
+      "records": 164,
+      "totalSales": 30464200,
+      "totalQuantity": 281
+    },
+    {
+      "name": "안동(대-위)",
+      "code": "694",
+      "records": 185,
+      "totalSales": 29624600,
+      "totalQuantity": 283
+    },
+    {
+      "name": "안성(대-위)",
+      "code": "6037",
+      "records": 171,
+      "totalSales": 29129100,
+      "totalQuantity": 260
+    },
+    {
+      "name": "해남(대-위)",
+      "code": "6035",
+      "records": 199,
+      "totalSales": 28914218,
+      "totalQuantity": 257
+    },
+    {
+      "name": "타임스트림신림(직)",
+      "code": "533",
+      "records": 148,
+      "totalSales": 28324500,
+      "totalQuantity": 292
+    },
+    {
+      "name": "남원(대-위)",
+      "code": "6026",
+      "records": 165,
+      "totalSales": 28033700,
+      "totalQuantity": 245
+    },
+    {
+      "name": "울산무거(대-위)",
+      "code": "6038",
+      "records": 232,
+      "totalSales": 27349500,
+      "totalQuantity": 270
+    },
+    {
+      "name": "신세계마산",
+      "code": "180",
+      "records": 175,
+      "totalSales": 26703800,
+      "totalQuantity": 247
+    },
+    {
+      "name": "경기광주(대-위)",
+      "code": "6039",
+      "records": 152,
+      "totalSales": 26590100,
+      "totalQuantity": 237
+    },
+    {
+      "name": "모다아울렛대전close",
+      "code": "095",
+      "records": 145,
+      "totalSales": 25182100,
+      "totalQuantity": 241
+    },
+    {
+      "name": "정읍(대-위)",
+      "code": "6025",
+      "records": 168,
+      "totalSales": 23966695,
+      "totalQuantity": 241
+    },
+    {
+      "name": "현대울산동구",
+      "code": "015",
+      "records": 173,
+      "totalSales": 23940700,
+      "totalQuantity": 265
+    },
+    {
+      "name": "전주송천(대-위)",
+      "code": "6009",
+      "records": 185,
+      "totalSales": 23812296,
+      "totalQuantity": 215
+    },
+    {
+      "name": "타임테라스동탄(직)",
+      "code": "534",
+      "records": 175,
+      "totalSales": 23776900,
+      "totalQuantity": 269
+    },
+    {
+      "name": "홍성(대-위)",
+      "code": "6030",
+      "records": 152,
+      "totalSales": 23568900,
+      "totalQuantity": 199
+    },
+    {
+      "name": "영주(대-위)",
+      "code": "6022",
+      "records": 138,
+      "totalSales": 22568700,
+      "totalQuantity": 197
+    },
+    {
+      "name": "갤러리아진주",
+      "code": "001",
+      "records": 171,
+      "totalSales": 21755800,
+      "totalQuantity": 228
+    },
+    {
+      "name": "롯데미아",
+      "code": "195",
+      "records": 139,
+      "totalSales": 21442500,
+      "totalQuantity": 231
+    },
+    {
+      "name": "롯데아울렛동부산(상-위)",
+      "code": "7503",
+      "records": 7,
+      "totalSales": 21376000,
+      "totalQuantity": 535
+    },
+    {
+      "name": "인천(대-위)",
+      "code": "643",
+      "records": 157,
+      "totalSales": 21137300,
+      "totalQuantity": 212
+    },
+    {
+      "name": "통영(대-위)",
+      "code": "6005",
+      "records": 182,
+      "totalSales": 20719400,
+      "totalQuantity": 194
+    },
+    {
+      "name": "구미인동(대-위)",
+      "code": "745",
+      "records": 163,
+      "totalSales": 20248665,
+      "totalQuantity": 202
+    },
+    {
+      "name": "여천(대-위)",
+      "code": "718",
+      "records": 174,
+      "totalSales": 19648186,
+      "totalQuantity": 233
+    },
+    {
+      "name": "보령(대-위)",
+      "code": "6011",
+      "records": 150,
+      "totalSales": 19608900,
+      "totalQuantity": 195
+    },
+    {
+      "name": "시흥(대-위)",
+      "code": "6002",
+      "records": 165,
+      "totalSales": 19310318,
+      "totalQuantity": 171
+    },
+    {
+      "name": "롯데아울렛김해(상-위)",
+      "code": "7521",
+      "records": 6,
+      "totalSales": 17259000,
+      "totalQuantity": 420
+    },
+    {
+      "name": "현대아울렛김포(상-위)",
+      "code": "7533",
+      "records": 6,
+      "totalSales": 15220000,
+      "totalQuantity": 366
+    },
+    {
+      "name": "CJ온스타일(제휴몰)",
+      "code": "8011",
+      "records": 68,
+      "totalSales": 12588300,
+      "totalQuantity": 162
+    },
+    {
+      "name": "신세계아울렛시흥(상-위)",
+      "code": "7515",
+      "records": 3,
+      "totalSales": 12293000,
+      "totalQuantity": 310
+    },
+    {
+      "name": "대구칠곡(대-위)",
+      "code": "6036",
+      "records": 128,
+      "totalSales": 12182400,
+      "totalQuantity": 126
+    },
+    {
+      "name": "롯데아울렛파주(상-위)",
+      "code": "7536",
+      "records": 6,
+      "totalSales": 11501000,
+      "totalQuantity": 262
+    },
+    {
+      "name": "롯데분당",
+      "code": "014",
+      "records": 133,
+      "totalSales": 11270800,
+      "totalQuantity": 152
+    },
+    {
+      "name": "신세계아울렛파주(상-위)",
+      "code": "7518",
+      "records": 5,
+      "totalSales": 10806000,
+      "totalQuantity": 275
+    },
+    {
+      "name": "롯데아울렛봉무(상-위)",
+      "code": "7504",
+      "records": 4,
+      "totalSales": 10494000,
+      "totalQuantity": 289
+    },
+    {
+      "name": "신세계아울렛여주(상-위)",
+      "code": "7516",
+      "records": 5,
+      "totalSales": 10485000,
+      "totalQuantity": 275
+    },
+    {
+      "name": "롯데아울렛기흥(상-위)",
+      "code": "7535",
+      "records": 5,
+      "totalSales": 9017000,
+      "totalQuantity": 212
+    },
+    {
+      "name": "롯데아울렛이천(상-위)",
+      "code": "7530",
+      "records": 6,
+      "totalSales": 8309000,
+      "totalQuantity": 204
+    },
+    {
+      "name": "롯데아울렛부여(상-위)",
+      "code": "7505",
+      "records": 4,
+      "totalSales": 7566000,
+      "totalQuantity": 207
+    },
+    {
+      "name": "롯데아울렛수완(상-위)",
+      "code": "7500",
+      "records": 4,
+      "totalSales": 6603000,
+      "totalQuantity": 182
+    },
+    {
+      "name": "MLB 쇼피파이 글로벌",
+      "code": "8015",
+      "records": 47,
+      "totalSales": 5949679,
+      "totalQuantity": 81
+    },
+    {
+      "name": "LF스퀘어광양(상-위)",
+      "code": "7526",
+      "records": 3,
+      "totalSales": 5409000,
+      "totalQuantity": 150
+    },
+    {
+      "name": "신세계아울렛기장(상-위)",
+      "code": "7522",
+      "records": 4,
+      "totalSales": 5209000,
+      "totalQuantity": 135
+    },
+    {
+      "name": "마리오(상-위)",
+      "code": "7517",
+      "records": 4,
+      "totalSales": 4923000,
+      "totalQuantity": 123
+    },
+    {
+      "name": "현대아울렛동대문(상-위)",
+      "code": "7508",
+      "records": 4,
+      "totalSales": 3882000,
+      "totalQuantity": 107
+    },
+    {
+      "name": "현대아울렛대전(상-위)",
+      "code": "7529",
+      "records": 5,
+      "totalSales": 3795000,
+      "totalQuantity": 95
+    },
+    {
+      "name": "LF스퀘어양주(상-위)",
+      "code": "7527",
+      "records": 3,
+      "totalSales": 3678000,
+      "totalQuantity": 101
+    },
+    {
+      "name": "롯데아울렛진주(상-위)",
+      "code": "7525",
+      "records": 3,
+      "totalSales": 3363000,
+      "totalQuantity": 93
+    },
+    {
+      "name": "NC강서(상-위)",
+      "code": "7510",
+      "records": 3,
+      "totalSales": 2853000,
+      "totalQuantity": 79
+    },
+    {
+      "name": "롯데아울렛율하(상-위)",
+      "code": "7534",
+      "records": 3,
+      "totalSales": 1962000,
+      "totalQuantity": 54
+    },
+    {
+      "name": "현대아울렛가산(상-위)",
+      "code": "7519",
+      "records": 3,
+      "totalSales": 1929000,
+      "totalQuantity": 53
+    },
+    {
+      "name": "롯데아울렛군산(상-위)",
+      "code": "7537",
+      "records": 2,
+      "totalSales": 1800000,
+      "totalQuantity": 50
+    },
+    {
+      "name": "현대아울렛대구(상-위)",
+      "code": "7532",
+      "records": 3,
+      "totalSales": 1770000,
+      "totalQuantity": 49
+    },
+    {
+      "name": "NC송파(상-위)",
+      "code": "7513",
+      "records": 3,
+      "totalSales": 1662000,
+      "totalQuantity": 46
+    },
+    {
+      "name": "현대아울렛가든5(상-위)",
+      "code": "7509",
+      "records": 2,
+      "totalSales": 1656000,
+      "totalQuantity": 46
+    },
+    {
+      "name": "모다경주(상-위)",
+      "code": "7523",
+      "records": 3,
+      "totalSales": 1125000,
+      "totalQuantity": 31
+    },
+    {
+      "name": "롯데아울렛청주(상-위)",
+      "code": "7524",
+      "records": 3,
+      "totalSales": 1080000,
+      "totalQuantity": 29
+    },
+    {
+      "name": "콜렉티드(상-위)",
+      "code": "7520",
+      "records": 3,
+      "totalSales": 693000,
+      "totalQuantity": 19
+    }
+  ]
+}

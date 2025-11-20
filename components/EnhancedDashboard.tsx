@@ -9,6 +9,7 @@ import ForecastChart from "./ForecastChart";
 import DataTable from "./DataTable";
 import SummaryDashboard from "./SummaryDashboard";
 import StoreAreaSelector from "./StoreAreaSelector";
+import WeeklySalesDashboard from "./WeeklySales/WeeklySalesDashboard";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -25,7 +26,7 @@ import type { DashboardData } from "@/types/dashboard";
 export default function EnhancedDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details" | "weekly-sales">("overview");
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -147,6 +148,16 @@ export default function EnhancedDashboard() {
             }`}
           >
             📋 상세
+          </button>
+          <button
+            onClick={() => setActiveTab("weekly-sales")}
+            className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              activeTab === "weekly-sales"
+                ? "bg-purple-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            📅 일주월별 판매
           </button>
         </div>
 
@@ -348,6 +359,11 @@ export default function EnhancedDashboard() {
               </div>
             </div>
           </>
+        )}
+
+        {/* 일주월별 판매 탭 */}
+        {activeTab === "weekly-sales" && (
+          <WeeklySalesDashboard />
         )}
       </div>
     </div>
