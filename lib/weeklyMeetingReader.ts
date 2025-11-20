@@ -72,7 +72,7 @@ function parseWeeklyMeetingData(data: any[][]): WeeklyMeetingData {
   const categories: WeeklyMeetingCategory[] = [];
   
   // 상권별 데이터 파싱 (행 4-8: 합계, 국내, 면세, RF+도매)
-  const areaData = [];
+  const areaData: any[] = [];
   const areaRows = data.slice(3, 8);
   
   areaRows.forEach(row => {
@@ -105,7 +105,7 @@ function parseWeeklyMeetingData(data: any[][]): WeeklyMeetingData {
   });
 
   // 채널별 데이터 파싱 (행 13-20: 합계, 백화점, 대리점, 온라인, 직영점, 면세, 도매)
-  const channelData = [];
+  const channelData: any[] = [];
   const channelRows = data.slice(12, 21);
   
   channelRows.forEach(row => {
