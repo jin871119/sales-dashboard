@@ -63,9 +63,61 @@ export default function WeeklySalesDashboard() {
         
         const result = await response.json();
         console.log('📊 일주월별 판매 데이터 로드됨:', result);
-        console.log('📅 날짜 범위:', result.dateRange);
-        console.log('📈 일별 데이터 개수:', result.dailyTotals?.length);
-        setData(result);
+        
+        // API 응답 구조 확인 및 변환
+        let processedData;
+        if (result.success) {
+          // 새로운 API 구조 (StoreDistribution용으로 변환된 것)
+          const totalSales = result.summary?.totalSales || 0;
+          
+          // stores 배열의 필드명 변환
+          const storeStats = (result.stores || []).map((store: any) => ({
+            ...store,
+            sales: store.totalSales || store.sales || 0,
+            quantity: store.totalQuantity || store.quantity || 0,
+            transactions: store.totalTransactions || store.transactions || 0,
+            storeRegion: store.region || store.storeRegion
+          }));
+          
+          // byRegion 배열의 필드명 변환 및 share 계산
+          const regionStats = (result.byRegion || []).map((region: any) => ({
+            region: region.region,
+            storeCount: region.storeCount,
+            sales: region.totalSales || region.sales || 0,
+            quantity: region.totalQuantity || region.quantity || 0,
+            share: totalSales > 0 ? ((region.totalSales || region.sales || 0) / totalSales) * 100 : 0
+          }));
+          
+          processedData = {
+            totalSales,
+            totalQuantity: result.summary?.totalQuantity || 0,
+            averagePrice: result.summary?.totalSales && result.summary?.totalQuantity 
+              ? result.summary.totalSales / result.summary.totalQuantity 
+              : 0,
+            returnRate: 0,
+            dateRange: {
+              start: result.summary?.startDate || '',
+              end: result.summary?.endDate || '',
+              dates: result.dailyTotals?.map((d: any) => d.date) || []
+            },
+            dailyTotals: result.dailyTotals || [],
+            storeStats,
+            storeTypeStats: result.storeTypeStats || [],
+            departmentBrandStats: result.departmentBrandStats || [],
+            regionStats,
+            onlineOfflineStats: result.onlineOfflineStats || {},
+            itemStats: result.itemStats || [],
+            seasonStats: result.seasonStats || [],
+            bestSellers: result.bestSellers || []
+          };
+        } else {
+          // 기존 API 구조
+          processedData = result;
+        }
+        
+        console.log('📅 날짜 범위:', processedData.dateRange);
+        console.log('📈 일별 데이터 개수:', processedData.dailyTotals?.length);
+        setData(processedData);
       } catch (error: any) {
         console.error("데이터 로딩 실패:", error);
         setError(error.message);
