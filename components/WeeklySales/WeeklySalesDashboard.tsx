@@ -80,8 +80,8 @@ export default function WeeklySalesDashboard() {
               storeRegion: store.region || store.storeRegion,
               share: totalSales > 0 ? ((store.totalSales || store.sales || 0) / totalSales) * 100 : 0
             }))
-            .sort((a, b) => b.sales - a.sales)
-            .map((store, index) => ({
+            .sort((a: any, b: any) => b.sales - a.sales)
+            .map((store: any, index: number) => ({
               ...store,
               rank: index + 1
             }));
