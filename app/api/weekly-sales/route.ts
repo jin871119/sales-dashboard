@@ -6,8 +6,14 @@ let cachedData: any = null;
 let cacheTime: number = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5분
 
+// 개발 중에는 캐시 무시 (디버깅용)
+const FORCE_REFRESH = true;
+
 export async function GET(request: Request) {
   try {
+    console.log('🔍 API 호출됨: /api/weekly-sales');
+    console.log('📂 현재 작업 디렉토리:', process.cwd());
+    
     const { searchParams } = new URL(request.url);
     const view = searchParams.get('view') || 'analytics';
     const storeType = searchParams.get('storeType');
@@ -17,12 +23,18 @@ export async function GET(request: Request) {
     
     // 캐시 확인
     const now = Date.now();
-    if (!cachedData || (now - cacheTime) > CACHE_DURATION) {
+    if (FORCE_REFRESH || !cachedData || (now - cacheTime) > CACHE_DURATION) {
       console.log('📊 일주월별 판매 데이터 읽는 중...');
+      console.log('⏰ 캐시 시간 초과, 새로 읽기 시작');
+      
       const records = readWeeklySalesExcel();
+      console.log(`✅ ${records.length}개 레코드 읽음`);
+      
       cachedData = analyzeWeeklySales(records);
       cacheTime = now;
       console.log('✅ 데이터 캐시 완료');
+    } else {
+      console.log('⚡ 캐시된 데이터 사용');
     }
     
     let data = { ...cachedData };
@@ -91,11 +103,28 @@ export async function GET(request: Request) {
         return NextResponse.json(data);
     }
   } catch (error: any) {
-    console.error('API 오류:', error);
+    console.error('❌ API 오류:', error);
+    console.error('📍 오류 스택:', error.stack);
+    
+    // 파일 시스템 정보 출력
+    const fs = require('fs');
+    const rootDir = process.cwd();
+    console.error('📂 프로젝트 루트:', rootDir);
+    
+    try {
+      const files = fs.readdirSync(rootDir);
+      const xlsxFiles = files.filter((f: string) => f.endsWith('.xlsx'));
+      console.error('📄 루트의 xlsx 파일들:', xlsxFiles);
+    } catch (e) {
+      console.error('❌ 디렉토리 읽기 실패:', e);
+    }
+    
     return NextResponse.json(
       { 
         error: '데이터 로드 실패', 
         message: error.message,
+        stack: error.stack,
+        cwd: process.cwd(),
         hint: 'mw_일주월별_판매 엑셀 파일이 프로젝트 루트에 있는지 확인하세요.'
       },
       { status: 500 }

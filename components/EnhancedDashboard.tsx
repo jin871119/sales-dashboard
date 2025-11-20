@@ -120,6 +120,16 @@ export default function EnhancedDashboard() {
             📊 개요
           </button>
           <button
+            onClick={() => setActiveTab("weekly-sales")}
+            className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              activeTab === "weekly-sales"
+                ? "bg-purple-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            📅 판매
+          </button>
+          <button
             onClick={() => setActiveTab("summary")}
             className={`px-6 py-2 rounded-lg font-medium transition-all ${
               activeTab === "summary"
@@ -148,16 +158,6 @@ export default function EnhancedDashboard() {
             }`}
           >
             📋 상세
-          </button>
-          <button
-            onClick={() => setActiveTab("weekly-sales")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
-              activeTab === "weekly-sales"
-                ? "bg-purple-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            📅 일주월별 판매
           </button>
         </div>
 

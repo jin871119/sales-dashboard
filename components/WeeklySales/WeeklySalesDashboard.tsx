@@ -12,6 +12,7 @@ import {
   BarChart3
 } from "lucide-react";
 import MetricCard from "../MetricCard";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface WeeklySalesData {
   totalSales: number;
@@ -44,6 +45,8 @@ export default function WeeklySalesDashboard() {
   const [data, setData] = useState<WeeklySalesData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<"overview" | "stores" | "products">("overview");
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [showDailyTable, setShowDailyTable] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -58,6 +61,9 @@ export default function WeeklySalesDashboard() {
         }
         
         const result = await response.json();
+        console.log('📊 일주월별 판매 데이터 로드됨:', result);
+        console.log('📅 날짜 범위:', result.dateRange);
+        console.log('📈 일별 데이터 개수:', result.dailyTotals?.length);
         setData(result);
       } catch (error: any) {
         console.error("데이터 로딩 실패:", error);
@@ -69,6 +75,18 @@ export default function WeeklySalesDashboard() {
 
     fetchData();
   }, []);
+
+  // ESC 키로 모달 닫기
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedProduct) {
+        setSelectedProduct(null);
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedProduct]);
 
   if (loading) {
     return (
@@ -125,13 +143,13 @@ export default function WeeklySalesDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              📅 일주월별 판매 대시보드
+              📅 판매 대시보드
             </h2>
             <p className="text-gray-600">
-              기간: {data.dateRange.start} ~ {data.dateRange.end} ({data.dateRange.dates.length}일)
+              기간: {data.dateRange?.start || 'N/A'} ~ {data.dateRange?.end || 'N/A'} ({data.dateRange?.dates?.length || 0}일)
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              총 {data.storeStats.length}개 매장의 판매 데이터 분석
+              총 {data.storeStats?.length || 0}개 매장의 판매 데이터 분석
             </p>
           </div>
           <button
@@ -217,36 +235,141 @@ export default function WeeklySalesDashboard() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-blue-600" />
-              일별 판매 추이
+              일별 판매 추이 ({data.dailyTotals?.length || 0}일)
             </h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매액</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">수량</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">거래건수</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {data.dailyTotals.slice().reverse().map((day, idx) => (
-                    <tr key={day.date} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{day.date}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-700">
-                        ₩{Math.round(day.sales / 1000).toLocaleString()}K
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-700">
-                        {day.quantity.toLocaleString()}개
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-700">
-                        {day.transactions.toLocaleString()}건
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            
+            {data.dailyTotals && data.dailyTotals.length > 0 ? (
+              <>
+                {/* 차트 */}
+                <div className="mb-6">
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={data.dailyTotals}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => `₩${(value / 1000000).toFixed(1)}M`}
+                  />
+                  <YAxis 
+                    yAxisId="right" 
+                    orientation="right"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => `${value}개`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    formatter={(value: any, name: string) => {
+                      if (name === '판매액') return [`₩${Math.round(value / 1000).toLocaleString()}K`, name];
+                      if (name === '판매수량') return [`${value.toLocaleString()}개`, name];
+                      if (name === '거래건수') return [`${value.toLocaleString()}건`, name];
+                      return [value, name];
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="sales" 
+                    stroke="#3b82f6" 
+                    strokeWidth={3}
+                    name="판매액"
+                    dot={{ fill: '#3b82f6', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="quantity" 
+                    stroke="#10b981" 
+                    strokeWidth={3}
+                    name="판매수량"
+                    dot={{ fill: '#10b981', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="transactions" 
+                    stroke="#f59e0b" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="거래건수"
+                    dot={{ fill: '#f59e0b', r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
+
+                {/* 테이블 토글 버튼 */}
+                <div className="flex justify-center mt-4 mb-2">
+                  <button
+                    onClick={() => setShowDailyTable(!showDailyTable)}
+                    className="px-6 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    {showDailyTable ? (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                        세부 데이터 닫기
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        세부 데이터 보기
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* 테이블 - 토글 */}
+                {showDailyTable && (
+                  <div className="overflow-x-auto mt-4">
+                    <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매액</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">수량</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">거래건수</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {data.dailyTotals.slice().reverse().map((day, idx) => (
+                        <tr key={day.date} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{day.date}</td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-700">
+                            ₩{Math.round(day.sales / 1000).toLocaleString()}K
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-700">
+                            {day.quantity.toLocaleString()}개
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-700">
+                            {day.transactions.toLocaleString()}건
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600">일별 판매 데이터가 없습니다.</p>
+                <p className="text-sm text-gray-500 mt-2">데이터를 확인해주세요.</p>
+              </div>
+            )}
           </div>
 
           {/* 매장 유형별 성과 */}
@@ -332,6 +455,54 @@ export default function WeeklySalesDashboard() {
       {/* 매장 분석 */}
       {activeSubTab === "stores" && (
         <div className="space-y-6">
+          {/* 지역별 분석 추가 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-green-600" />
+              지역별 판매 분석
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">지역</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">매장수</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매액</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매수량</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">점유율</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">매장평균</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {data.regionStats.map((region, idx) => (
+                    <tr key={region.region} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {region.region}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700">
+                        {region.storeCount}개
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700 font-medium">
+                        ₩{Math.round(region.sales / 1000000).toLocaleString()}M
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700">
+                        {region.quantity.toLocaleString()}개
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                          {region.share.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700">
+                        ₩{Math.round((region.sales / region.storeCount) / 1000).toLocaleString()}K
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Store className="w-5 h-5 text-blue-600" />
@@ -394,7 +565,7 @@ export default function WeeklySalesDashboard() {
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Package className="w-5 h-5 text-orange-600" />
-              베스트셀러 Top 20
+              베스트셀러 Top 20 (클릭하여 매장별 판매 확인)
             </h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -406,11 +577,16 @@ export default function WeeklySalesDashboard() {
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">시즌</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매수량</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매액</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">상세</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {data.bestSellers.slice(0, 20).map((product, idx) => (
-                    <tr key={product.productCode} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <tr 
+                      key={product.productCode} 
+                      className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors cursor-pointer`}
+                      onClick={() => setSelectedProduct(selectedProduct?.productCode === product.productCode ? null : product)}
+                    >
                       <td className="px-4 py-3 text-sm font-bold text-gray-900">{idx + 1}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {product.productName}
@@ -432,12 +608,155 @@ export default function WeeklySalesDashboard() {
                       <td className="px-4 py-3 text-sm text-right text-gray-700">
                         ₩{Math.round(product.sales / 1000).toLocaleString()}K
                       </td>
+                      <td className="px-4 py-3 text-center">
+                        <button className="text-blue-600 hover:text-blue-800 text-xs font-medium">
+                          {selectedProduct?.productCode === product.productCode ? '닫기 ▲' : '매장보기 ▼'}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
+
+          {/* 선택한 제품의 Top 5 매장 - 모달 */}
+          {selectedProduct && selectedProduct.topStores && selectedProduct.topStores.length > 0 && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedProduct(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                {/* 모달 헤더 */}
+                <div className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                        <Store className="w-6 h-6" />
+                        판매 Top 5 매장
+                      </h3>
+                      <p className="text-orange-50 text-sm font-medium">
+                        {selectedProduct.productName}
+                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-sm">
+                        <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                          {selectedProduct.productCode}
+                        </span>
+                        <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                          {selectedProduct.item}
+                        </span>
+                        <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                          {selectedProduct.season}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedProduct(null)}
+                      className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 모달 바디 */}
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                  {/* 전체 통계 */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+                      <div className="text-sm text-blue-600 font-medium mb-1">총 판매수량</div>
+                      <div className="text-2xl font-bold text-blue-900">
+                        {selectedProduct.quantity.toLocaleString()}개
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
+                      <div className="text-sm text-green-600 font-medium mb-1">총 판매액</div>
+                      <div className="text-2xl font-bold text-green-900">
+                        ₩{Math.round(selectedProduct.sales / 1000).toLocaleString()}K
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top 5 매장 테이블 */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gradient-to-r from-orange-100 to-yellow-100">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">순위</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">매장명</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">판매수량</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">판매액</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">점유율</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {selectedProduct.topStores.map((store: any, idx: number) => {
+                          const share = (store.quantity / selectedProduct.quantity) * 100;
+                          const isTop3 = idx < 3;
+                          return (
+                            <tr 
+                              key={idx} 
+                              className={`${
+                                idx === 0 ? 'bg-yellow-50' : 
+                                idx === 1 ? 'bg-gray-50' : 
+                                idx === 2 ? 'bg-orange-50' : 
+                                idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                              } hover:bg-orange-100 transition-colors`}
+                            >
+                              <td className="px-4 py-4 text-sm font-bold text-gray-900">
+                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                                  idx === 0 ? 'bg-yellow-400 text-yellow-900' :
+                                  idx === 1 ? 'bg-gray-400 text-gray-900' :
+                                  idx === 2 ? 'bg-orange-400 text-orange-900' :
+                                  'bg-blue-100 text-blue-900'
+                                }`}>
+                                  {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-sm font-semibold text-gray-900">
+                                {store.storeName}
+                              </td>
+                              <td className="px-4 py-4 text-sm text-right font-bold text-gray-900">
+                                {store.quantity.toLocaleString()}개
+                              </td>
+                              <td className="px-4 py-4 text-sm text-right font-medium text-gray-700">
+                                ₩{Math.round(store.sales / 1000).toLocaleString()}K
+                              </td>
+                              <td className="px-4 py-4 text-sm text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="bg-orange-100 rounded-full h-2 w-20">
+                                    <div 
+                                      className="bg-gradient-to-r from-orange-500 to-yellow-500 h-2 rounded-full transition-all"
+                                      style={{ width: `${share}%` }}
+                                    />
+                                  </div>
+                                  <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold min-w-[50px] text-center">
+                                    {share.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 모달 푸터 */}
+                <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t">
+                  <p className="text-sm text-gray-600">
+                    💡 이 제품은 총 {selectedProduct.topStores.length}개 매장에서 판매되었습니다
+                  </p>
+                  <button
+                    onClick={() => setSelectedProduct(null)}
+                    className="px-6 py-2 bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-yellow-600 transition-all shadow-md"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 아이템 카테고리별 */}
           <div className="bg-white rounded-xl shadow-lg p-6">

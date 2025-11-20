@@ -172,19 +172,87 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
     const filePath = path.join(rootDir, excelFile);
     console.log(`📊 읽는 중: ${filePath}`);
     
-    const workbook = XLSX.readFile(filePath);
+    // 파일 접근 가능 여부 확인
+    try {
+      fs.accessSync(filePath, fs.constants.R_OK);
+    } catch (e) {
+      throw new Error(`파일에 접근할 수 없습니다. 엑셀에서 파일이 열려있으면 닫아주세요: ${filePath}`);
+    }
+    
+    // 버퍼로 파일 읽기 (파일 잠금 문제 해결)
+    console.log('📖 파일을 버퍼로 읽는 중...');
+    const fileBuffer = fs.readFileSync(filePath);
+    console.log(`✅ 버퍼 읽기 완료 (${(fileBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
+    
+    // 버퍼에서 워크북 파싱
+    const workbook = XLSX.read(fileBuffer, { 
+      type: 'buffer',
+      cellDates: true,
+      cellNF: false,
+      cellText: false
+    });
     const worksheet = workbook.Sheets['report'];
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
     
     // 헤더는 2번째 행 (인덱스 1)
     const headers = data[1];
     
-    // 날짜 컬럼 추출 (20번째 컬럼부터)
+    console.log(`📊 총 헤더 수: ${headers.length}`);
+    console.log(`📋 헤더 샘플 (20-40):`, headers.slice(20, 41).map((h: any, i: number) => `[${20+i}]=${h}(${typeof h})`));
+    
+    // 날짜 컬럼 찾기 - 전체 헤더에서 숫자(엑셀 날짜)인 것을 찾음
     const dateColumns: string[] = [];
-    for (let i = 20; i < headers.length; i++) {
-      if (typeof headers[i] === 'number') {
-        dateColumns.push(excelDateToJSDate(headers[i]));
+    const dateColumnIndices: number[] = [];
+    
+    // V열(21)부터 AN열(39)까지 또는 전체에서 날짜 형식 찾기
+    const tempDateData: { date: string; serial: number; index: number }[] = [];
+    
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i];
+      // 엑셀 날짜는 숫자 형식이거나 날짜 객체
+      if (typeof header === 'number') {
+        // 45000~46000 범위 (2023-2025년)
+        if (header > 44900 && header < 46500) {
+          const dateStr = excelDateToJSDate(header);
+          tempDateData.push({ date: dateStr, serial: header, index: i });
+          console.log(`  ✅ [${i}]: ${header} → ${dateStr}`);
+        }
+      } else if (header instanceof Date) {
+        // Date 객체인 경우
+        const dateStr = header.toISOString().split('T')[0];
+        const year = header.getFullYear();
+        const month = header.getMonth();
+        const day = header.getDate();
+        const serial = Math.floor((new Date(year, month, day).getTime() / 86400000) + 25569);
+        tempDateData.push({ date: dateStr, serial, index: i });
+        console.log(`  ✅ [${i}]: Date → ${dateStr}`);
       }
+    }
+    
+    // 날짜로 정렬 (오름차순)
+    tempDateData.sort((a, b) => a.date.localeCompare(b.date));
+    
+    // 11월 1일(2025-11-01) 이후만 필터링
+    const filteredDates = tempDateData.filter(d => d.date >= '2025-11-01' && d.date <= '2025-11-30');
+    
+    console.log(`📅 필터링 전 날짜 수: ${tempDateData.length}`);
+    console.log(`📅 필터링 후 (11월 1일~) 날짜 수: ${filteredDates.length}`);
+    if (filteredDates.length > 0) {
+      console.log(`📅 첫 날짜: ${filteredDates[0].date}, 마지막 날짜: ${filteredDates[filteredDates.length - 1].date}`);
+      console.log(`📅 모든 날짜:`, filteredDates.map(d => d.date).join(', '));
+    }
+    
+    filteredDates.forEach(d => {
+      dateColumns.push(d.date);
+      dateColumnIndices.push(d.index);
+    });
+    
+    console.log(`📅 추출된 날짜 컬럼 수: ${dateColumns.length}`);
+    if (dateColumns.length > 0) {
+      console.log(`📅 날짜 컬럼 인덱스: ${dateColumnIndices[0]} ~ ${dateColumnIndices[dateColumnIndices.length - 1]}`);
+      console.log(`📅 날짜 범위: ${dateColumns[0]} ~ ${dateColumns[dateColumns.length - 1]}`);
+    } else {
+      console.warn('⚠️ 날짜 컬럼을 찾을 수 없습니다!');
     }
     
     // 데이터 파싱 (3번째 행부터, 인덱스 2부터)
@@ -202,7 +270,8 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
       // 일별 판매 데이터 추출
       const dailySales: { [date: string]: number } = {};
       for (let j = 0; j < dateColumns.length; j++) {
-        const qty = row[20 + j];
+        const columnIndex = dateColumnIndices[j];
+        const qty = row[columnIndex];
         if (qty && typeof qty === 'number' && qty > 0) {
           dailySales[dateColumns[j]] = qty;
         }
@@ -244,9 +313,11 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
 
 // 분석 데이터 생성
 export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAnalytics {
-  // 전체 통계
-  const totalSales = records.reduce((sum, r) => sum + r.totalSales, 0);
-  const totalQuantity = records.reduce((sum, r) => sum + r.totalQuantity, 0);
+  console.log(`🔍 분석 시작: ${records.length}개 레코드`);
+  
+  // 전체 통계 - 정상_판매수량과 정상_판매액 사용
+  const totalSales = records.reduce((sum, r) => sum + r.normalSales, 0);
+  const totalQuantity = records.reduce((sum, r) => sum + r.normalQuantity, 0);
   const totalReturns = records.reduce((sum, r) => sum + Math.abs(r.returnSales), 0);
   
   // 날짜 추출
@@ -256,7 +327,19 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
   });
   const dates = Array.from(allDates).sort();
   
-  // 일별 집계
+  console.log(`📅 추출된 고유 날짜 수: ${dates.length}`);
+  if (dates.length > 0) {
+    console.log(`📅 날짜 범위: ${dates[0]} ~ ${dates[dates.length - 1]}`);
+  } else {
+    console.warn('⚠️ 날짜가 추출되지 않았습니다!');
+    // 샘플 레코드 확인
+    if (records.length > 0) {
+      console.log('샘플 레코드의 dailySales:', records[0].dailySales);
+      console.log('dailySales 키 수:', Object.keys(records[0].dailySales).length);
+    }
+  }
+  
+  // 일별 집계 - 정상_판매수량과 정상_판매액 사용
   const dailyMap = new Map<string, { sales: number; quantity: number; transactions: number }>();
   records.forEach(r => {
     Object.entries(r.dailySales).forEach(([date, qty]) => {
@@ -265,7 +348,10 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       }
       const daily = dailyMap.get(date)!;
       daily.quantity += qty;
-      daily.sales += (r.totalSales / r.totalQuantity) * qty; // 비례 배분
+      // 정상_판매액을 비례 배분하여 사용
+      if (r.normalQuantity > 0) {
+        daily.sales += (r.normalSales / r.normalQuantity) * qty;
+      }
       daily.transactions += 1;
     });
   });
@@ -295,8 +381,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       });
     }
     const store = storeMap.get(key)!;
-    store.sales += r.totalSales;
-    store.quantity += r.totalQuantity;
+    store.sales += r.normalSales;
+    store.quantity += r.normalQuantity;
   });
   
   const storeStats = Array.from(storeMap.values())
@@ -411,8 +497,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       itemMap.set(r.item, { sales: 0, quantity: 0 });
     }
     const item = itemMap.get(r.item)!;
-    item.sales += r.totalSales;
-    item.quantity += r.totalQuantity;
+    item.sales += r.normalSales;
+    item.quantity += r.normalQuantity;
   });
   
   const itemStats = Array.from(itemMap.entries())
@@ -431,8 +517,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       seasonMap.set(r.season, { sales: 0, quantity: 0 });
     }
     const season = seasonMap.get(r.season)!;
-    season.sales += r.totalSales;
-    season.quantity += r.totalQuantity;
+    season.sales += r.normalSales;
+    season.quantity += r.normalQuantity;
   });
   
   const seasonStats = Array.from(seasonMap.entries())
@@ -444,13 +530,14 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
     }))
     .sort((a, b) => b.sales - a.sales);
   
-  // 베스트셀러 (제품별)
+  // 베스트셀러 (제품별) - 매장 정보 포함
   const productMap = new Map<string, {
     productName: string;
     item: string;
     season: string;
     sales: number;
     quantity: number;
+    storeBreakdown: Map<string, { storeName: string; quantity: number; sales: number }>;
   }>();
   
   records.forEach(r => {
@@ -460,23 +547,41 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
         item: r.item,
         season: r.season,
         sales: 0,
-        quantity: 0
+        quantity: 0,
+        storeBreakdown: new Map()
       });
     }
     const product = productMap.get(r.productCode)!;
-    product.sales += r.totalSales;
-    product.quantity += r.totalQuantity;
+    product.sales += r.normalSales;
+    product.quantity += r.normalQuantity;
+    
+    // 매장별 판매 추가
+    const storeKey = `${r.storeCode}|${r.storeName}`;
+    if (!product.storeBreakdown.has(storeKey)) {
+      product.storeBreakdown.set(storeKey, { storeName: r.storeName, quantity: 0, sales: 0 });
+    }
+    const storeData = product.storeBreakdown.get(storeKey)!;
+    storeData.quantity += r.normalQuantity;
+    storeData.sales += r.normalSales;
   });
   
   const bestSellers = Array.from(productMap.entries())
-    .map(([code, data]) => ({
-      productCode: code,
-      productName: data.productName,
-      item: data.item,
-      season: data.season,
-      quantity: data.quantity,
-      sales: data.sales
-    }))
+    .map(([code, data]) => {
+      // 매장별 Top 5
+      const topStores = Array.from(data.storeBreakdown.values())
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5);
+      
+      return {
+        productCode: code,
+        productName: data.productName,
+        item: data.item,
+        season: data.season,
+        quantity: data.quantity,
+        sales: data.sales,
+        topStores
+      };
+    })
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 50);
   
