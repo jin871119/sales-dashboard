@@ -23,6 +23,10 @@ interface StoreData {
   x?: number;  // 3D 좌표용
   y?: number;
   z?: number;
+  // 등급 정보
+  departmentGrade?: string;  // 백화점등급: S, A, B, C
+  salesGrade?: string;        // 매출등급: A, B, C, D
+  areaGrade?: string;         // 매장평수등급: A, B, C, D
 }
 
 interface WeeklySalesData {
@@ -43,6 +47,47 @@ interface WeeklySalesData {
   }>;
 }
 
+// 매장별 등급 매핑 (샘플 데이터 - 나중에 API에서 가져오기)
+const STORE_GRADES: { [key: string]: { dept: string; sales: string; area: string } } = {
+  "신세계강남": { dept: "S", sales: "A", area: "B" },
+  "신세계센텀": { dept: "A", sales: "A", area: "B" },
+  "현대판교": { dept: "A", sales: "B", area: "A" },
+  "롯데대구": { dept: "C", sales: "C", area: "B" },
+  // 추가 매장은 자동 계산으로 처리
+};
+
+// 등급을 숫자로 변환
+const gradeToNumber = (grade: string): number => {
+  const map: { [key: string]: number } = { "S": 5, "A": 4, "B": 3, "C": 2, "D": 1 };
+  return map[grade] || 0;
+};
+
+// 매출액 기반 자동 등급 계산
+const calculateSalesGrade = (sales: number, maxSales: number): string => {
+  const ratio = sales / maxSales;
+  if (ratio >= 0.8) return "A";
+  if (ratio >= 0.6) return "B";
+  if (ratio >= 0.4) return "C";
+  return "D";
+};
+
+// 백화점등급 자동 계산 (브랜드 기반)
+const calculateDeptGrade = (storeName: string): string => {
+  if (storeName.includes("신세계강남") || storeName.includes("현대본점")) return "S";
+  if (storeName.includes("신세계") || storeName.includes("현대") || storeName.includes("롯데본점")) return "A";
+  if (storeName.includes("갤러리아") || storeName.includes("AK")) return "B";
+  return "C";
+};
+
+// 매장평수등급 자동 계산 (판매수량 기반)
+const calculateAreaGrade = (quantity: number, maxQuantity: number): string => {
+  const ratio = quantity / maxQuantity;
+  if (ratio >= 0.8) return "A";
+  if (ratio >= 0.6) return "B";
+  if (ratio >= 0.4) return "C";
+  return "D";
+};
+
 export default function StoreDistributionDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<WeeklySalesData | null>(null);
@@ -57,17 +102,45 @@ export default function StoreDistributionDashboard() {
         const result = await response.json();
         
         if (result.success) {
-          // 3D 좌표 계산 (가상 좌표 - 실제로는 실제 위경도 데이터 필요)
-          const storesWithCoords = result.stores.map((store: StoreData, idx: number) => ({
-            ...store,
-            x: Math.random() * 1000,
-            y: Math.random() * 1000,
-            z: store.totalSales / 10000000, // 매출액을 높이로 표현
-          }));
+          // 최대값 계산
+          const maxSales = Math.max(...result.stores.map((s: StoreData) => s.totalSales));
+          const maxQuantity = Math.max(...result.stores.map((s: StoreData) => s.totalQuantity));
+          
+          // 등급 계산 및 3D 좌표 설정
+          const storesWithGrades = result.stores.map((store: StoreData) => {
+            // 매장명에서 간단한 키 추출
+            const storeKey = Object.keys(STORE_GRADES).find(key => 
+              store.storeName.includes(key)
+            );
+            
+            let departmentGrade, salesGrade, areaGrade;
+            
+            if (storeKey && STORE_GRADES[storeKey]) {
+              // 샘플 데이터 사용
+              departmentGrade = STORE_GRADES[storeKey].dept;
+              salesGrade = STORE_GRADES[storeKey].sales;
+              areaGrade = STORE_GRADES[storeKey].area;
+            } else {
+              // 자동 계산
+              departmentGrade = calculateDeptGrade(store.storeName);
+              salesGrade = calculateSalesGrade(store.totalSales, maxSales);
+              areaGrade = calculateAreaGrade(store.totalQuantity, maxQuantity);
+            }
+            
+            return {
+              ...store,
+              departmentGrade,
+              salesGrade,
+              areaGrade,
+              x: gradeToNumber(departmentGrade),  // 백화점등급
+              y: gradeToNumber(salesGrade),        // 매출등급
+              z: gradeToNumber(areaGrade) * 200    // 매장평수등급 (버블 크기)
+            };
+          });
           
           setData({
             ...result,
-            stores: storesWithCoords
+            stores: storesWithGrades
           });
         }
       } catch (error) {
@@ -250,57 +323,107 @@ export default function StoreDistributionDashboard() {
         </div>
       </div>
 
-      {/* 3D 뷰 - 버블 차트 (3D 효과) */}
+      {/* 3D 뷰 - 등급 기반 버블 차트 */}
       {viewMode === "3d" && (
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Globe className="w-6 h-6 text-purple-600" />
-            매장별 매출 3D 분포도
-            <span className="text-sm text-gray-500 font-normal ml-2">
-              (버블 크기 = 매출액, 높이 = 판매수량)
-            </span>
-          </h3>
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <Globe className="w-6 h-6 text-purple-600" />
+              매장 3차원 등급 분포도
+            </h3>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                <span>X축: 백화점등급 (S=5, A=4, B=3, C=2, D=1)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                <span>Y축: 매출등급 (A=4, B=3, C=2, D=1)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span>버블 크기: 매장평수등급 (A=큼, B=중, C=작음)</span>
+              </div>
+            </div>
+          </div>
           
           <ResponsiveContainer width="100%" height={600}>
-            <ScatterChart margin={{ top: 20, right: 20, bottom: 80, left: 20 }}>
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 80, left: 80 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 type="number" 
                 dataKey="x" 
-                name="X 좌표" 
-                label={{ value: '지역 분포 (가상 좌표)', position: 'bottom', offset: 0 }}
+                name="백화점등급" 
+                domain={[0, 6]}
+                ticks={[1, 2, 3, 4, 5]}
+                tickFormatter={(value) => {
+                  const map: { [key: number]: string } = { 1: "D", 2: "C", 3: "B", 4: "A", 5: "S" };
+                  return map[value] || "";
+                }}
+                label={{ 
+                  value: '백화점 등급 (Department Grade)', 
+                  position: 'bottom', 
+                  offset: 20,
+                  style: { fontSize: 14, fontWeight: 'bold' }
+                }}
               />
               <YAxis 
                 type="number" 
                 dataKey="y" 
-                name="Y 좌표"
-                label={{ value: '지역 내 위치 (가상 좌표)', angle: -90, position: 'insideLeft' }}
+                name="매출등급"
+                domain={[0, 5]}
+                ticks={[1, 2, 3, 4]}
+                tickFormatter={(value) => {
+                  const map: { [key: number]: string } = { 1: "D", 2: "C", 3: "B", 4: "A" };
+                  return map[value] || "";
+                }}
+                label={{ 
+                  value: '매출 등급 (Sales Grade)', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { fontSize: 14, fontWeight: 'bold' }
+                }}
               />
               <ZAxis 
                 type="number" 
-                dataKey="totalSales" 
-                range={[100, 2000]} 
-                name="매출액" 
+                dataKey="z" 
+                range={[200, 2000]} 
+                name="매장평수등급" 
               />
               <Tooltip 
                 cursor={{ strokeDasharray: '3 3' }}
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
-                    const data = payload[0].payload;
+                    const store = payload[0].payload;
                     return (
-                      <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
-                        <p className="font-bold text-gray-900 mb-2">{data.storeName}</p>
-                        <p className="text-sm text-gray-600">지역: {data.region}</p>
-                        <p className="text-sm text-gray-600">유형: {data.storeType}</p>
-                        <p className="text-sm text-purple-600 font-semibold mt-2">
-                          매출액: {(data.totalSales / 100000000).toFixed(2)}억원
-                        </p>
-                        <p className="text-sm text-blue-600">
-                          판매수량: {data.totalQuantity.toLocaleString()}개
-                        </p>
-                        <p className="text-sm text-green-600">
-                          거래건수: {data.totalTransactions.toLocaleString()}건
-                        </p>
+                      <div className="bg-white p-4 rounded-lg shadow-xl border-2 border-purple-200">
+                        <p className="font-bold text-lg text-gray-900 mb-3">{store.storeName}</p>
+                        
+                        <div className="space-y-2 mb-3 pb-3 border-b">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">🏢 백화점등급:</span>
+                            <span className="text-lg font-bold text-purple-600">{store.departmentGrade}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">💰 매출등급:</span>
+                            <span className="text-lg font-bold text-blue-600">{store.salesGrade}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">📏 매장평수등급:</span>
+                            <span className="text-lg font-bold text-green-600">{store.areaGrade}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1 text-sm">
+                          <p className="text-gray-600">지역: {store.region}</p>
+                          <p className="text-gray-600">유형: {store.storeType}</p>
+                          <p className="text-purple-600 font-semibold">
+                            매출액: {(store.totalSales / 100000000).toFixed(2)}억원
+                          </p>
+                          <p className="text-blue-600">
+                            판매수량: {store.totalQuantity.toLocaleString()}개
+                          </p>
+                        </div>
                       </div>
                     );
                   }
@@ -322,11 +445,47 @@ export default function StoreDistributionDashboard() {
             </ScatterChart>
           </ResponsiveContainer>
 
+          {/* 범례 및 설명 */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <h4 className="font-bold text-purple-900 mb-2">🏢 백화점 등급 (X축)</h4>
+              <div className="space-y-1 text-sm">
+                <p><strong>S:</strong> 신세계강남 등 초프리미엄</p>
+                <p><strong>A:</strong> 신세계센텀, 현대판교 등</p>
+                <p><strong>B:</strong> 갤러리아, AK 등</p>
+                <p><strong>C:</strong> 롯데대구 등</p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-bold text-blue-900 mb-2">💰 매출 등급 (Y축)</h4>
+              <div className="space-y-1 text-sm">
+                <p><strong>A:</strong> 최상위 80% 이상</p>
+                <p><strong>B:</strong> 상위 60-80%</p>
+                <p><strong>C:</strong> 중위 40-60%</p>
+                <p><strong>D:</strong> 40% 미만</p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <h4 className="font-bold text-green-900 mb-2">📏 매장평수 등급 (버블 크기)</h4>
+              <div className="space-y-1 text-sm">
+                <p><strong>A:</strong> 대형 매장 (큰 버블)</p>
+                <p><strong>B:</strong> 중형 매장 (중간 버블)</p>
+                <p><strong>C:</strong> 소형 매장 (작은 버블)</p>
+                <p className="text-gray-500 italic mt-2">* 판매수량 기준 추정</p>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-800">
-              💡 <strong>3D 시각화 안내:</strong> 버블의 크기는 매출액을 나타내며, 
-              각 지역별로 색상이 구분됩니다. 마우스를 올려 상세 정보를 확인하세요.
-              향후 실제 지도 좌표 데이터가 추가되면 정확한 위치 기반 시각화가 가능합니다.
+              💡 <strong>샘플 매장 확인:</strong> 
+              <span className="font-semibold"> 신세계강남(S-A-B)</span>, 
+              <span className="font-semibold"> 신세계센텀(A-A-B)</span>, 
+              <span className="font-semibold"> 현대판교(A-B-A)</span>, 
+              <span className="font-semibold"> 롯데대구(C-C-B)</span> 
+              매장을 클릭해서 등급을 확인해보세요!
             </p>
           </div>
         </div>
