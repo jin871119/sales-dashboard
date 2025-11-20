@@ -94,10 +94,12 @@ function parseWeeklyMeetingData(data: any[][]): WeeklyMeetingData {
         monthlyAchievementRate: parseNumber(row[12]),
         monthlyExistingGrowth: parseNumber(row[13]),
         monthlyPureGrowth: parseNumber(row[14]),
+        monthlyGroupRatio: parseNumber(row[15]),
         // 46주차
         weeklyActual: parseNumber(row[17]),
         weeklyLastYear: parseNumber(row[18]),
         weeklyGrowthRate: parseNumber(row[19]),
+        weeklyGroupRatio: parseNumber(row[20]),
       };
       categories.push(category);
       areaData.push(category);
@@ -127,10 +129,12 @@ function parseWeeklyMeetingData(data: any[][]): WeeklyMeetingData {
         monthlyAchievementRate: parseNumber(row[12]),
         monthlyExistingGrowth: parseNumber(row[13]),
         monthlyPureGrowth: parseNumber(row[14]),
+        monthlyGroupRatio: parseNumber(row[15]),
         // 46주차
         weeklyActual: parseNumber(row[17]),
         weeklyLastYear: parseNumber(row[18]),
         weeklyGrowthRate: parseNumber(row[19]),
+        weeklyGroupRatio: parseNumber(row[20]),
       };
       channelData.push(channel);
     }

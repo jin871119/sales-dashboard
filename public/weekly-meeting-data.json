@@ -34,9 +34,11 @@
       "monthlyAchievementRate": 0.54,
       "monthlyExistingGrowth": 0.07,
       "monthlyPureGrowth": -0.05,
+      "monthlyGroupRatio": 0.35,
       "weeklyActual": 3711,
       "weeklyLastYear": 3746,
-      "weeklyGrowthRate": -0.01
+      "weeklyGrowthRate": -0.01,
+      "weeklyGroupRatio": 0.22
     },
     {
       "name": "면세",
@@ -110,9 +112,11 @@
         "monthlyAchievementRate": 0.54,
         "monthlyExistingGrowth": 0.07,
         "monthlyPureGrowth": -0.05,
+        "monthlyGroupRatio": 0.35,
         "weeklyActual": 3711,
         "weeklyLastYear": 3746,
-        "weeklyGrowthRate": -0.01
+        "weeklyGrowthRate": -0.01,
+        "weeklyGroupRatio": 0.22
       },
       {
         "name": "면세",
@@ -185,9 +189,11 @@
         "monthlyAchievementRate": 0.55,
         "monthlyExistingGrowth": 0.02,
         "monthlyPureGrowth": -0.12,
+        "monthlyGroupRatio": 0.42,
         "weeklyActual": 1685,
         "weeklyLastYear": 1943,
-        "weeklyGrowthRate": -0.13
+        "weeklyGrowthRate": -0.13,
+        "weeklyGroupRatio": 0.34
       },
       {
         "name": "대리점",
@@ -204,9 +210,11 @@
         "monthlyAchievementRate": 0.61,
         "monthlyExistingGrowth": 0.23,
         "monthlyPureGrowth": 0.04,
+        "monthlyGroupRatio": 0.37,
         "weeklyActual": 1414,
         "weeklyLastYear": 1207,
-        "weeklyGrowthRate": 0.17
+        "weeklyGrowthRate": 0.17,
+        "weeklyGroupRatio": 0.32
       },
       {
         "name": "온라인",
