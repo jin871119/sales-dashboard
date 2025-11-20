@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readWeeklySalesExcel, analyzeWeeklySales } from '@/lib/weeklyMonthlySalesReader';
+import { readStoreArea } from '@/lib/storePerformanceReader';
 
 // 캐시 (메모리에 저장)
 let cachedData: any = null;
@@ -111,6 +112,15 @@ export async function GET(request: Request) {
       
       case 'analytics':
       default:
+        // 상권 데이터 읽기 (backdata.xlsx)
+        let storeAreaMap = new Map<string, string>();
+        try {
+          storeAreaMap = readStoreArea("backdata.xlsx");
+          console.log(`✅ 상권 데이터 매핑 준비 완료: ${storeAreaMap.size}개 매장`);
+        } catch (e) {
+          console.log('⚠️ 상권 데이터 로드 실패 (무시됨):', e);
+        }
+
         // StoreDistributionDashboard가 기대하는 형식으로 변환
         const byRegion = (data.regionStats || []).map((r: any) => ({
           region: r.region,
@@ -119,16 +129,44 @@ export async function GET(request: Request) {
           storeCount: r.storeCount
         }));
         
-        const stores = (data.storeStats || []).map((s: any) => ({
-          storeCode: s.storeCode,
-          storeName: s.storeName,
-          region: s.storeRegion,
-          storeType: s.storeType,
-          brand: s.storeBrand,
-          totalSales: s.sales,
-          totalQuantity: s.quantity,
-          totalTransactions: s.transactions || 0
-        }));
+        const stores = (data.storeStats || []).map((s: any) => {
+          // 상권 정보 매핑
+          const commercialArea = storeAreaMap.get(s.storeName) || '기타';
+          
+          return {
+            storeCode: s.storeCode,
+            storeName: s.storeName,
+            region: s.storeRegion,
+            commercialArea: commercialArea, // 상권 정보 추가
+            storeType: s.storeType,
+            brand: s.storeBrand,
+            totalSales: s.sales,
+            totalQuantity: s.quantity,
+            totalTransactions: s.transactions || 0
+          };
+        });
+
+        // 상권별 집계 생성
+        const areaMap = new Map<string, { sales: number; quantity: number; count: number }>();
+        stores.forEach((s: any) => {
+          const area = s.commercialArea;
+          if (!areaMap.has(area)) {
+            areaMap.set(area, { sales: 0, quantity: 0, count: 0 });
+          }
+          const val = areaMap.get(area)!;
+          val.sales += s.totalSales;
+          val.quantity += s.totalQuantity;
+          val.count += 1;
+        });
+
+        const byCommercialArea = Array.from(areaMap.entries())
+          .map(([area, val]) => ({
+            commercialArea: area,
+            totalSales: val.sales,
+            totalQuantity: val.quantity,
+            storeCount: val.count
+          }))
+          .sort((a, b) => b.totalSales - a.totalSales); // 매출순 정렬
         
         return NextResponse.json({
           success: true,
@@ -142,6 +180,7 @@ export async function GET(request: Request) {
           },
           stores: stores,
           byRegion: byRegion,
+          byCommercialArea: byCommercialArea, // 상권별 데이터 추가
           dailyTotals: data.dailyTotals || [],
           itemStats: data.itemStats || [],
           seasonStats: data.seasonStats || [],

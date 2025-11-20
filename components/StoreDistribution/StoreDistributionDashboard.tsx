@@ -29,6 +29,7 @@ interface StoreData {
   storeCode: string;
   storeName: string;
   region: string;
+  commercialArea?: string; // 상권 정보 추가
   storeType: string;
   brand: string;
   totalSales: number;
@@ -55,6 +56,12 @@ interface WeeklySalesData {
   stores: StoreData[];
   byRegion: Array<{
     region: string;
+    totalSales: number;
+    totalQuantity: number;
+    storeCount: number;
+  }>;
+  byCommercialArea?: Array<{
+    commercialArea: string;
     totalSales: number;
     totalQuantity: number;
     storeCount: number;
@@ -106,6 +113,7 @@ export default function StoreDistributionDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<WeeklySalesData | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string>("전체");
+  const [selectedCommercialArea, setSelectedCommercialArea] = useState<string>("전체"); // 상권 필터 추가
   const [viewMode, setViewMode] = useState<"3d" | "map" | "chart">("chart");
   const [plotlyError, setPlotlyError] = useState<boolean>(false);
 
@@ -190,12 +198,15 @@ export default function StoreDistributionDashboard() {
     );
   }
 
-  const filteredStores = selectedRegion === "전체" 
-    ? data.stores 
-    : data.stores.filter(s => s.region === selectedRegion);
+  // 필터링 로직 수정
+  const filteredStores = data.stores.filter(s => {
+    const matchRegion = selectedRegion === "전체" || s.region === selectedRegion;
+    const matchArea = selectedCommercialArea === "전체" || s.commercialArea === selectedCommercialArea;
+    return matchRegion && matchArea;
+  });
 
   // 상위 20개 매장
-  const top20Stores = [...data.stores]
+  const top20Stores = [...filteredStores] // 필터링된 매장 기준으로 Top 20 다시 계산
     .sort((a, b) => b.totalSales - a.totalSales)
     .slice(0, 20);
 
@@ -288,19 +299,45 @@ export default function StoreDistributionDashboard() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-gray-600" />
-            <span className="font-semibold text-gray-700">지역 필터:</span>
-            <select
-              value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="전체">전체</option>
-              {data.byRegion.map(r => (
-                <option key={r.region} value={r.region}>
-                  {r.region} ({r.storeCount}개)
-                </option>
-              ))}
-            </select>
+            
+            {/* 지역 필터 */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-semibold text-gray-700 text-sm">지역:</span>
+              <select
+                value={selectedRegion}
+                onChange={(e) => {
+                  setSelectedRegion(e.target.value);
+                  // 지역이 바뀌면 상권은 '전체'로 초기화하는 것이 자연스러움 (선택 사항)
+                }}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+              >
+                <option value="전체">전체</option>
+                {data.byRegion.map(r => (
+                  <option key={r.region} value={r.region}>
+                    {r.region} ({r.storeCount})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 상권 필터 (새로 추가) */}
+            {data.byCommercialArea && data.byCommercialArea.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 ml-2">
+                <span className="font-semibold text-gray-700 text-sm">상권:</span>
+                <select
+                  value={selectedCommercialArea}
+                  onChange={(e) => setSelectedCommercialArea(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                >
+                  <option value="전체">전체</option>
+                  {data.byCommercialArea.map(a => (
+                    <option key={a.commercialArea} value={a.commercialArea}>
+                      {a.commercialArea} ({a.storeCount})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
