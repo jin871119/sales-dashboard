@@ -390,19 +390,19 @@ export default function StoreDistributionDashboard() {
                 autosize: true,
                 scene: {
                   xaxis: {
-                    title: '백화점등급 (Department Grade)',
+                    title: { text: '백화점등급 (Department Grade)' },
                     ticktext: ['D', 'C', 'B', 'A', 'S'],
                     tickvals: [1, 2, 3, 4, 5],
                     range: [0, 6]
                   },
                   yaxis: {
-                    title: '매출등급 (Sales Grade)',
+                    title: { text: '매출등급 (Sales Grade)' },
                     ticktext: ['D', 'C', 'B', 'A'],
                     tickvals: [1, 2, 3, 4],
                     range: [0, 5]
                   },
                   zaxis: {
-                    title: '매장평수등급 (Area Grade)',
+                    title: { text: '매장평수등급 (Area Grade)' },
                     ticktext: ['D', 'C', 'B', 'A'],
                     tickvals: [1, 2, 3, 4],
                     range: [0, 5]
@@ -426,7 +426,7 @@ export default function StoreDistributionDashboard() {
                   text: '매장별 3차원 등급 분석',
                   font: { size: 18 }
                 }
-              }}
+              } as any}
               config={{
                 displayModeBar: true,
                 displaylogo: false,
