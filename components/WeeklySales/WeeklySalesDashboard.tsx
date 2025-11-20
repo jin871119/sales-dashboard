@@ -70,14 +70,21 @@ export default function WeeklySalesDashboard() {
           // 새로운 API 구조 (StoreDistribution용으로 변환된 것)
           const totalSales = result.summary?.totalSales || 0;
           
-          // stores 배열의 필드명 변환
-          const storeStats = (result.stores || []).map((store: any) => ({
-            ...store,
-            sales: store.totalSales || store.sales || 0,
-            quantity: store.totalQuantity || store.quantity || 0,
-            transactions: store.totalTransactions || store.transactions || 0,
-            storeRegion: store.region || store.storeRegion
-          }));
+          // stores 배열의 필드명 변환 및 정렬
+          const storeStats = (result.stores || [])
+            .map((store: any) => ({
+              ...store,
+              sales: store.totalSales || store.sales || 0,
+              quantity: store.totalQuantity || store.quantity || 0,
+              transactions: store.totalTransactions || store.transactions || 0,
+              storeRegion: store.region || store.storeRegion,
+              share: totalSales > 0 ? ((store.totalSales || store.sales || 0) / totalSales) * 100 : 0
+            }))
+            .sort((a, b) => b.sales - a.sales)
+            .map((store, index) => ({
+              ...store,
+              rank: index + 1
+            }));
           
           // byRegion 배열의 필드명 변환 및 share 계산
           const regionStats = (result.byRegion || []).map((region: any) => ({
