@@ -11,6 +11,7 @@ import DataTable from "./DataTable";
 import SummaryDashboard from "./SummaryDashboard";
 import StoreAreaSelector from "./StoreAreaSelector";
 import WeeklySalesDashboard from "./WeeklySales/WeeklySalesDashboard";
+import SeoulRealtimeDashboard from "./SeoulRealtime/SeoulRealtimeDashboard";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -20,7 +21,8 @@ import {
   Activity,
   Calendar,
   FileText,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  MapPin
 } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
 
@@ -43,7 +45,7 @@ const StoreDistributionDashboard = dynamic(
 export default function EnhancedDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details" | "weekly-sales" | "store-distribution">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details" | "weekly-sales" | "store-distribution" | "seoul-realtime">("overview");
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -155,6 +157,16 @@ export default function EnhancedDashboard() {
             }`}
           >
             🏢 백화점 분포도
+          </button>
+          <button
+            onClick={() => setActiveTab("seoul-realtime")}
+            className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              activeTab === "seoul-realtime"
+                ? "bg-purple-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            🌆 서울 실시간
           </button>
           <button
             onClick={() => setActiveTab("summary")}
@@ -396,6 +408,11 @@ export default function EnhancedDashboard() {
         {/* 백화점 분포도 탭 */}
         {activeTab === "store-distribution" && (
           <StoreDistributionDashboard />
+        )}
+
+        {/* 서울시 실시간 도시데이터 탭 */}
+        {activeTab === "seoul-realtime" && (
+          <SeoulRealtimeDashboard />
         )}
       </div>
     </div>

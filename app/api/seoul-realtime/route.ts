@@ -1,0 +1,193 @@
+import { NextResponse } from 'next/server';
+
+// 서울시 실시간 도시데이터 API
+const API_KEY = process.env.NEXT_PUBLIC_SEOUL_RTD_API_KEY || 'sample_key';
+const BASE_URL = process.env.NEXT_PUBLIC_SEOUL_RTD_BASE_URL || 'http://openapi.seoul.go.kr:8088';
+
+// 캐시
+let cachedData: any = null;
+let cacheTime: number = 0;
+const CACHE_DURATION = 10 * 60 * 1000; // 10분 (실시간 데이터이므로 짧게 설정)
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type') || 'population'; // population, commercial, congestion
+    
+    // 캐시 확인
+    const now = Date.now();
+    const cacheKey = `${type}_${Math.floor(now / CACHE_DURATION)}`;
+    
+    if (cachedData && cachedData.key === cacheKey) {
+      console.log('⚡ 캐시된 서울시 실시간 데이터 사용');
+      return NextResponse.json(cachedData.data);
+    }
+    
+    console.log(`🌆 서울시 실시간 데이터 요청: ${type}`);
+    
+    let apiUrl = '';
+    
+    switch (type) {
+      case 'population':
+        // 실시간 인구 API (서울 생활인구)
+        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata/1/5`;
+        break;
+        
+      case 'congestion':
+        // 실시간 혼잡도 API (도심권역 혼잡도)
+        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata_ppltn/1/50`;
+        break;
+        
+      case 'commercial':
+        // 실시간 상권 현황 API
+        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata_stts/1/20`;
+        break;
+        
+      default:
+        return NextResponse.json(
+          { error: 'Invalid type parameter' },
+          { status: 400 }
+        );
+    }
+    
+    console.log(`📡 API 호출: ${apiUrl}`);
+    
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // API 응답 구조 확인
+    console.log('📊 API 응답 키:', Object.keys(data));
+    
+    // 캐시 저장
+    cachedData = {
+      key: cacheKey,
+      data: {
+        success: true,
+        type,
+        timestamp: new Date().toISOString(),
+        raw: data,
+        processed: processSeoulData(data, type)
+      }
+    };
+    
+    cacheTime = now;
+    
+    return NextResponse.json(cachedData.data);
+    
+  } catch (error: any) {
+    console.error('❌ 서울시 실시간 데이터 API 오류:', error);
+    
+    return NextResponse.json(
+      {
+        success: false,
+        error: '서울시 실시간 데이터 로드 실패',
+        message: error.message,
+        hint: 'API 키가 올바른지 확인하세요. .env.local 파일의 NEXT_PUBLIC_SEOUL_RTD_API_KEY를 설정해야 합니다.'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// 데이터 가공 함수
+function processSeoulData(raw: any, type: string) {
+  try {
+    switch (type) {
+      case 'population':
+      case 'congestion':
+        // citydata 또는 citydata_ppltn 응답 구조
+        const cityData = raw.citydata || raw.citydata_ppltn || raw.CITYDATA || raw.CITYDATA_PPLTN;
+        
+        if (!cityData || !cityData.row) {
+          return {
+            areas: [],
+            summary: {
+              totalAreas: 0,
+              avgCongestion: 0
+            }
+          };
+        }
+        
+        const areas = cityData.row.map((item: any) => ({
+          name: item.AREA_NM || item.area_nm || '알 수 없음',
+          congestionLevel: item.AREA_CONGEST_LVL || item.area_congest_lvl || '보통',
+          congestionMessage: item.AREA_CONGEST_MSG || item.area_congest_msg || '',
+          population: parseInt(item.AREA_PPLTN_MIN || item.area_ppltn_min || '0'),
+          populationMax: parseInt(item.AREA_PPLTN_MAX || item.area_ppltn_max || '0'),
+          updateTime: item.PPLTN_TIME || item.ppltn_time || new Date().toISOString()
+        }));
+        
+        return {
+          areas,
+          summary: {
+            totalAreas: areas.length,
+            avgCongestion: calculateAvgCongestion(areas)
+          }
+        };
+        
+      case 'commercial':
+        const commercialData = raw.citydata_stts || raw.CITYDATA_STTS;
+        
+        if (!commercialData || !commercialData.row) {
+          return {
+            stores: [],
+            summary: {
+              totalStores: 0
+            }
+          };
+        }
+        
+        const stores = commercialData.row.map((item: any) => ({
+          name: item.STTS_NM || item.stts_nm || '알 수 없음',
+          category: item.STTS_SE || item.stts_se || '',
+          salesStatus: item.STTS_VALUE || item.stts_value || 0
+        }));
+        
+        return {
+          stores,
+          summary: {
+            totalStores: stores.length
+          }
+        };
+        
+      default:
+        return {};
+    }
+  } catch (error) {
+    console.error('데이터 가공 중 오류:', error);
+    return {
+      areas: [],
+      summary: {
+        totalAreas: 0,
+        avgCongestion: 0
+      }
+    };
+  }
+}
+
+function calculateAvgCongestion(areas: any[]): number {
+  if (areas.length === 0) return 0;
+  
+  const congestionLevels: { [key: string]: number } = {
+    '여유': 1,
+    '보통': 2,
+    '약간 붐빔': 3,
+    '붐빔': 4
+  };
+  
+  const sum = areas.reduce((acc, area) => {
+    return acc + (congestionLevels[area.congestionLevel] || 2);
+  }, 0);
+  
+  return sum / areas.length;
+}
+
