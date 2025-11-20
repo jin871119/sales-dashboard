@@ -26,36 +26,71 @@ try {
 
   // 데이터 파싱
   const categories = [];
-  const categoryRows = data.slice(3, 8); // 행 4-8: 합계, 국내, 면세, RF+도매
-
-  categoryRows.forEach(row => {
+  
+  // 상권별
+  const areaData = [];
+  const areaRows = data.slice(3, 8);
+  areaRows.forEach(row => {
     if (row[0] && typeof row[0] === 'string') {
       const category = {
         name: row[0],
-        // 25년 누계
         yearlyTarget: parseNumber(row[1]),
         yearlyActual: parseNumber(row[2]),
         yearlyLastYear: parseNumber(row[3]),
         yearlyGrowthRate: parseNumber(row[4]),
         yearlyAchievementRate: parseNumber(row[5]),
-        // 11월
+        yearlyExistingGrowth: parseNumber(row[6]),
         monthlyTarget: parseNumber(row[8]),
         monthlyActual: parseNumber(row[9]),
         monthlyLastYear: parseNumber(row[10]),
         monthlyGrowthRate: parseNumber(row[11]),
         monthlyAchievementRate: parseNumber(row[12]),
-        // 46주차
+        monthlyExistingGrowth: parseNumber(row[13]),
+        monthlyPureGrowth: parseNumber(row[14]),
         weeklyActual: parseNumber(row[17]),
         weeklyLastYear: parseNumber(row[18]),
         weeklyGrowthRate: parseNumber(row[19]),
       };
       categories.push(category);
+      areaData.push(category);
+    }
+  });
+
+  // 채널별
+  const channelData = [];
+  const channelRows = data.slice(12, 21);
+  channelRows.forEach(row => {
+    if (row[0] && typeof row[0] === 'string') {
+      const channel = {
+        name: row[0],
+        yearlyTarget: parseNumber(row[1]),
+        yearlyActual: parseNumber(row[2]),
+        yearlyLastYear: parseNumber(row[3]),
+        yearlyGrowthRate: parseNumber(row[4]),
+        yearlyAchievementRate: parseNumber(row[5]),
+        yearlyExistingGrowth: parseNumber(row[6]),
+        monthlyTarget: parseNumber(row[8]),
+        monthlyActual: parseNumber(row[9]),
+        monthlyLastYear: parseNumber(row[10]),
+        monthlyGrowthRate: parseNumber(row[11]),
+        monthlyAchievementRate: parseNumber(row[12]),
+        monthlyExistingGrowth: parseNumber(row[13]),
+        monthlyPureGrowth: parseNumber(row[14]),
+        weeklyActual: parseNumber(row[17]),
+        weeklyLastYear: parseNumber(row[18]),
+        weeklyGrowthRate: parseNumber(row[19]),
+      };
+      channelData.push(channel);
     }
   });
 
   const result = {
     period: '2025년 46주차',
-    categories
+    categories,
+    rawData: {
+      상권: areaData,
+      채널: channelData
+    }
   };
 
   // JSON 파일로 저장

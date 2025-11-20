@@ -5,9 +5,10 @@ import { useState } from "react";
 
 interface SummaryTableProps {
   data: any;
+  weeklyMeetingData?: any;
 }
 
-export default function SummaryTable({ data }: SummaryTableProps) {
+export default function SummaryTable({ data, weeklyMeetingData }: SummaryTableProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([]); // 기본값: 모두 접힌 상태
   const [aiInsights, setAiInsights] = useState<{ [key: string]: boolean }>({});
 
@@ -300,12 +301,305 @@ export default function SummaryTable({ data }: SummaryTableProps) {
     );
   };
 
+  // 주간회의 AI 인사이트 생성
+  const generateWeeklyMeetingInsight = (rawData: any) => {
+    if (!rawData || !rawData.상권 || !rawData.채널) return null;
+
+    const totalArea = rawData.상권[0]; // 합계
+    const totalChannel = rawData.채널[0]; // 합계
+
+    let insights = [];
+
+    // 25년 누계 분석
+    const yearlyAchievement = (totalArea.yearlyAchievementRate || 0) * 100;
+    if (yearlyAchievement >= 90) {
+      insights.push(`🎯 25년 누계 달성률 ${yearlyAchievement.toFixed(1)}%로 목표 달성이 거의 확실합니다!`);
+    } else if (yearlyAchievement >= 70) {
+      insights.push(`✅ 25년 누계 달성률 ${yearlyAchievement.toFixed(1)}%로 양호한 진행 상황입니다.`);
+    } else {
+      insights.push(`⚠️ 25년 누계 달성률 ${yearlyAchievement.toFixed(1)}%로 목표 달성을 위해 추가 노력이 필요합니다.`);
+    }
+
+    // 11월 성장률 분석
+    const monthlyGrowth = (totalArea.monthlyGrowthRate || 0) * 100;
+    if (monthlyGrowth >= 10) {
+      insights.push(`📈 11월 전년 대비 ${monthlyGrowth >= 0 ? '+' : ''}${monthlyGrowth.toFixed(1)}%로 강력한 성장세입니다.`);
+    } else if (monthlyGrowth >= 0) {
+      insights.push(`📊 11월 전년 대비 ${monthlyGrowth >= 0 ? '+' : ''}${monthlyGrowth.toFixed(1)}%로 안정적 성장세를 유지하고 있습니다.`);
+    } else if (monthlyGrowth >= -10) {
+      insights.push(`📉 11월 전년 대비 ${monthlyGrowth.toFixed(1)}%로 소폭 감소했습니다.`);
+    } else {
+      insights.push(`⚠️ 11월 전년 대비 ${monthlyGrowth.toFixed(1)}%로 큰 폭 감소했습니다. 즉각적인 대응이 필요합니다.`);
+    }
+
+    // 46주차 분석
+    const weeklyGrowth = (totalArea.weeklyGrowthRate || 0) * 100;
+    insights.push(`📅 46주차 전년 대비 ${weeklyGrowth >= 0 ? '+' : ''}${weeklyGrowth.toFixed(1)}%를 기록했습니다.`);
+
+    // 상권별 최고 실적
+    const bestArea = [...rawData.상권].slice(1).reduce((max, item) => {
+      const maxRate = (max.monthlyGrowthRate || 0);
+      const itemRate = (item.monthlyGrowthRate || 0);
+      return itemRate > maxRate ? item : max;
+    });
+    insights.push(`🏆 상권별 최고 성장: ${bestArea.name} (11월 전년 대비 ${((bestArea.monthlyGrowthRate || 0) * 100).toFixed(1)}%)`);
+
+    // 채널별 최고 실적
+    const bestChannel = [...rawData.채널].slice(1).reduce((max, item) => {
+      const maxRate = (max.monthlyGrowthRate || 0);
+      const itemRate = (item.monthlyGrowthRate || 0);
+      return itemRate > maxRate ? item : max;
+    });
+    insights.push(`🎯 채널별 최고 성장: ${bestChannel.name} (11월 전년 대비 ${((bestChannel.monthlyGrowthRate || 0) * 100).toFixed(1)}%)`);
+
+    return insights;
+  };
+
+  // 주간회의 섹션 렌더링
+  const renderWeeklyMeetingSection = () => {
+    if (!weeklyMeetingData || !weeklyMeetingData.rawData) {
+      return null;
+    }
+
+    const isExpanded = expandedSections.includes('weekly-meeting');
+    const showAiInsight = aiInsights['weekly-meeting'];
+    const insights = generateWeeklyMeetingInsight(weeklyMeetingData.rawData);
+
+    return (
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-200 hover:border-purple-300 transition-all">
+        {/* 헤더 */}
+        <div 
+          className="flex items-center justify-between p-6 cursor-pointer bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all"
+          onClick={() => toggleSection('weekly-meeting')}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📋</span>
+            <h3 className="text-xl font-bold text-gray-900">주간회의</h3>
+            <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
+              {weeklyMeetingData.period}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleAiInsight('weekly-meeting');
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md text-sm font-medium"
+            >
+              <Sparkles className="w-4 h-4" />
+              AI 인사이트
+            </button>
+            {isExpanded ? (
+              <ChevronUp className="w-6 h-6 text-gray-600" />
+            ) : (
+              <ChevronDown className="w-6 h-6 text-gray-600" />
+            )}
+          </div>
+        </div>
+
+        {/* AI 인사이트 */}
+        {isExpanded && showAiInsight && insights && (
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 border-b-2 border-purple-200">
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-6 h-6 text-purple-600 flex-shrink-0 mt-1" />
+              <div className="flex-1">
+                <h4 className="text-lg font-bold text-purple-900 mb-3">🤖 AI 분석 결과</h4>
+                <ul className="space-y-2">
+                  {insights.map((insight, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-gray-700">
+                      <span className="text-purple-600 font-bold mt-1">•</span>
+                      <span className="flex-1">{insight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 테이블 */}
+        {isExpanded && (
+          <div className="p-6 space-y-8">
+            {/* 상권별 */}
+            {weeklyMeetingData.rawData.상권 && (
+              <div>
+                <h4 className="text-lg font-bold text-gray-900 mb-4">📍 상권별</h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 border">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" rowSpan={2}>
+                          상권
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" colSpan={6}>
+                          25년 누계
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" colSpan={7}>
+                          11월
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" colSpan={3}>
+                          46주차
+                        </th>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">목표</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">금년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">전년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">성장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">달성율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">기존점<br/>신장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">목표</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">금년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">전년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">성장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">달성율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">기존점<br/>신장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">순수<br/>신장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">금년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">전년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">성장율</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {weeklyMeetingData.rawData.상권.map((item: any, idx: number) => (
+                        <tr key={idx} className={item.name === '합계' ? 'bg-blue-50 font-bold' : ''}>
+                          <td className="px-4 py-3 text-sm text-gray-900 border">{item.name}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.yearlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-900 font-medium border">{item.yearlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.yearlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.yearlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.yearlyGrowthRate !== undefined ? `${(item.yearlyGrowthRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.yearlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {item.yearlyAchievementRate !== undefined ? `${(item.yearlyAchievementRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right border ${(item.yearlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.yearlyExistingGrowth !== undefined ? `${(item.yearlyExistingGrowth * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.monthlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-900 font-medium border">{item.monthlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.monthlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.monthlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.monthlyGrowthRate !== undefined ? `${(item.monthlyGrowthRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.monthlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {item.monthlyAchievementRate !== undefined ? `${(item.monthlyAchievementRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right border ${(item.monthlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.monthlyExistingGrowth !== undefined ? `${(item.monthlyExistingGrowth * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right border ${(item.monthlyPureGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.monthlyPureGrowth !== undefined ? `${(item.monthlyPureGrowth * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-900 font-medium border">{item.weeklyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.weeklyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.weeklyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.weeklyGrowthRate !== undefined ? `${(item.weeklyGrowthRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 채널별 */}
+            {weeklyMeetingData.rawData.채널 && (
+              <div>
+                <h4 className="text-lg font-bold text-gray-900 mb-4">🏬 채널별</h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 border">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" rowSpan={2}>
+                          채널
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" colSpan={6}>
+                          25년 누계
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" colSpan={7}>
+                          11월
+                        </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border" colSpan={3}>
+                          46주차
+                        </th>
+                      </tr>
+                      <tr>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">목표</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">금년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">전년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">성장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">달성율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">기존점<br/>신장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">목표</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">금년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">전년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">성장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">달성율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">기존점<br/>신장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">순수<br/>신장율</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">금년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">전년</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 border">성장율</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {weeklyMeetingData.rawData.채널.map((item: any, idx: number) => (
+                        <tr key={idx} className={item.name === '합계' ? 'bg-blue-50 font-bold' : ''}>
+                          <td className="px-4 py-3 text-sm text-gray-900 border">{item.name}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.yearlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-900 font-medium border">{item.yearlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.yearlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.yearlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.yearlyGrowthRate !== undefined ? `${(item.yearlyGrowthRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.yearlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {item.yearlyAchievementRate !== undefined ? `${(item.yearlyAchievementRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right border ${(item.yearlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.yearlyExistingGrowth !== undefined ? `${(item.yearlyExistingGrowth * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.monthlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-900 font-medium border">{item.monthlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.monthlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.monthlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.monthlyGrowthRate !== undefined ? `${(item.monthlyGrowthRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.monthlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {item.monthlyAchievementRate !== undefined ? `${(item.monthlyAchievementRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right border ${(item.monthlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.monthlyExistingGrowth !== undefined ? `${(item.monthlyExistingGrowth * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`px-3 py-3 text-sm text-right border ${(item.monthlyPureGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.monthlyPureGrowth !== undefined ? `${(item.monthlyPureGrowth * 100).toFixed(1)}%` : '-'}
+                          </td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-900 font-medium border">{item.weeklyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-3 py-3 text-sm text-right text-gray-700 border">{item.weeklyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-3 py-3 text-sm text-right font-bold border ${(item.weeklyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.weeklyGrowthRate !== undefined ? `${(item.weeklyGrowthRate * 100).toFixed(1)}%` : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 rounded-xl p-8 mb-6 shadow-lg border-2 border-purple-200">
         <h2 className="text-3xl font-extrabold text-gray-900 mb-3">📊 영업 실적 요약</h2>
         <p className="text-lg text-gray-700 font-medium mb-2">
-          상권별, TEAM별, 유통별 목표 대비 실적 및 전년 대비 성장률
+          주간회의, 상권별, TEAM별, 유통별 목표 대비 실적 및 전년 대비 성장률
         </p>
         <div className="flex flex-wrap gap-3 mt-4">
           <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-semibold">
@@ -317,6 +611,7 @@ export default function SummaryTable({ data }: SummaryTableProps) {
         </div>
       </div>
 
+      {renderWeeklyMeetingSection()}
       {renderSection('🏢 상권별', 'area', data.byArea)}
       {renderSection('👥 TEAM별', 'team', data.byTeam)}
       {renderSection('🛍️ 유통별', 'channel', data.byChannel)}

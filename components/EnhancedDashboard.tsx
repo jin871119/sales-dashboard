@@ -12,7 +12,6 @@ import SummaryDashboard from "./SummaryDashboard";
 import StoreAreaSelector from "./StoreAreaSelector";
 import WeeklySalesDashboard from "./WeeklySales/WeeklySalesDashboard";
 import SeoulRealtimeDashboard from "./SeoulRealtime/SeoulRealtimeDashboard";
-import WeeklyMeetingSection from "./WeeklyMeeting/WeeklyMeetingSection";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -282,15 +281,10 @@ export default function EnhancedDashboard() {
               <SalesChart data={data.monthlySales} />
             </div>
 
-            {/* 주간회의 실적 요약 */}
-            <div className="mb-8">
-              <WeeklyMeetingSection data={weeklyMeetingData} />
-            </div>
-
-            {/* 영업 실적 요약 표 */}
+            {/* 영업 실적 요약 표 (주간회의 포함) */}
             {data.summarySheet && (
               <div className="mb-8">
-                <SummaryTable data={data.summarySheet} />
+                <SummaryTable data={data.summarySheet} weeklyMeetingData={weeklyMeetingData} />
               </div>
             )}
 

@@ -72,11 +72,12 @@ function parseWeeklyMeetingData(data: any[][]): WeeklyMeetingData {
   const categories: WeeklyMeetingCategory[] = [];
   
   // 상권별 데이터 파싱 (행 4-8: 합계, 국내, 면세, RF+도매)
-  const categoryRows = data.slice(3, 8);
+  const areaData = [];
+  const areaRows = data.slice(3, 8);
   
-  categoryRows.forEach(row => {
+  areaRows.forEach(row => {
     if (row[0] && typeof row[0] === 'string') {
-      const category: WeeklyMeetingCategory = {
+      const category: any = {
         name: row[0],
         // 25년 누계
         yearlyTarget: parseNumber(row[1]),
@@ -84,25 +85,65 @@ function parseWeeklyMeetingData(data: any[][]): WeeklyMeetingData {
         yearlyLastYear: parseNumber(row[3]),
         yearlyGrowthRate: parseNumber(row[4]),
         yearlyAchievementRate: parseNumber(row[5]),
+        yearlyExistingGrowth: parseNumber(row[6]),
         // 11월
         monthlyTarget: parseNumber(row[8]),
         monthlyActual: parseNumber(row[9]),
         monthlyLastYear: parseNumber(row[10]),
         monthlyGrowthRate: parseNumber(row[11]),
         monthlyAchievementRate: parseNumber(row[12]),
+        monthlyExistingGrowth: parseNumber(row[13]),
+        monthlyPureGrowth: parseNumber(row[14]),
         // 46주차
         weeklyActual: parseNumber(row[17]),
         weeklyLastYear: parseNumber(row[18]),
         weeklyGrowthRate: parseNumber(row[19]),
       };
       categories.push(category);
+      areaData.push(category);
+    }
+  });
+
+  // 채널별 데이터 파싱 (행 13-20: 합계, 백화점, 대리점, 온라인, 직영점, 면세, 도매)
+  const channelData = [];
+  const channelRows = data.slice(12, 21);
+  
+  channelRows.forEach(row => {
+    if (row[0] && typeof row[0] === 'string') {
+      const channel: any = {
+        name: row[0],
+        // 25년 누계
+        yearlyTarget: parseNumber(row[1]),
+        yearlyActual: parseNumber(row[2]),
+        yearlyLastYear: parseNumber(row[3]),
+        yearlyGrowthRate: parseNumber(row[4]),
+        yearlyAchievementRate: parseNumber(row[5]),
+        yearlyExistingGrowth: parseNumber(row[6]),
+        // 11월
+        monthlyTarget: parseNumber(row[8]),
+        monthlyActual: parseNumber(row[9]),
+        monthlyLastYear: parseNumber(row[10]),
+        monthlyGrowthRate: parseNumber(row[11]),
+        monthlyAchievementRate: parseNumber(row[12]),
+        monthlyExistingGrowth: parseNumber(row[13]),
+        monthlyPureGrowth: parseNumber(row[14]),
+        // 46주차
+        weeklyActual: parseNumber(row[17]),
+        weeklyLastYear: parseNumber(row[18]),
+        weeklyGrowthRate: parseNumber(row[19]),
+      };
+      channelData.push(channel);
     }
   });
 
   return {
-    period: '2025년 46주차', // 동적으로 변경 가능
-    categories
-  };
+    period: '2025년 46주차',
+    categories,
+    rawData: {
+      상권: areaData,
+      채널: channelData
+    }
+  } as any;
 }
 
 function parseNumber(value: any): number | undefined {
