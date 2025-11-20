@@ -10,6 +10,7 @@ import DataTable from "./DataTable";
 import SummaryDashboard from "./SummaryDashboard";
 import StoreAreaSelector from "./StoreAreaSelector";
 import WeeklySalesDashboard from "./WeeklySales/WeeklySalesDashboard";
+import StoreDistributionDashboard from "./StoreDistribution/StoreDistributionDashboard";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -26,7 +27,7 @@ import type { DashboardData } from "@/types/dashboard";
 export default function EnhancedDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details" | "weekly-sales">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details" | "weekly-sales" | "store-distribution">("overview");
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -128,6 +129,16 @@ export default function EnhancedDashboard() {
             }`}
           >
             📅 판매
+          </button>
+          <button
+            onClick={() => setActiveTab("store-distribution")}
+            className={`px-6 py-2 rounded-lg font-medium transition-all ${
+              activeTab === "store-distribution"
+                ? "bg-purple-600 text-white shadow-md"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            🏢 백화점 분포도
           </button>
           <button
             onClick={() => setActiveTab("summary")}
@@ -364,6 +375,11 @@ export default function EnhancedDashboard() {
         {/* 일주월별 판매 탭 */}
         {activeTab === "weekly-sales" && (
           <WeeklySalesDashboard />
+        )}
+
+        {/* 백화점 분포도 탭 */}
+        {activeTab === "store-distribution" && (
+          <StoreDistributionDashboard />
         )}
       </div>
     </div>
