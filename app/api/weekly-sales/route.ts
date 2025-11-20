@@ -100,7 +100,45 @@ export async function GET(request: Request) {
       
       case 'analytics':
       default:
-        return NextResponse.json(data);
+        // StoreDistributionDashboard가 기대하는 형식으로 변환
+        const byRegion = (data.regionStats || []).map((r: any) => ({
+          region: r.region,
+          totalSales: r.sales,
+          totalQuantity: r.quantity,
+          storeCount: r.storeCount
+        }));
+        
+        const stores = (data.storeStats || []).map((s: any) => ({
+          storeCode: s.storeCode,
+          storeName: s.storeName,
+          region: s.storeRegion,
+          storeType: s.storeType,
+          brand: s.storeBrand,
+          totalSales: s.sales,
+          totalQuantity: s.quantity,
+          totalTransactions: s.transactions || 0
+        }));
+        
+        return NextResponse.json({
+          success: true,
+          summary: {
+            startDate: data.dateRange?.start || '',
+            endDate: data.dateRange?.end || '',
+            totalSales: data.totalSales || 0,
+            totalQuantity: data.totalQuantity || 0,
+            totalTransactions: data.storeStats?.reduce((sum: number, s: any) => sum + (s.transactions || 0), 0) || 0,
+            storeCount: data.storeStats?.length || 0
+          },
+          stores: stores,
+          byRegion: byRegion,
+          dailyTotals: data.dailyTotals || [],
+          itemStats: data.itemStats || [],
+          seasonStats: data.seasonStats || [],
+          bestSellers: data.bestSellers || [],
+          storeTypeStats: data.storeTypeStats || [],
+          departmentBrandStats: data.departmentBrandStats || [],
+          onlineOfflineStats: data.onlineOfflineStats || {}
+        });
     }
   } catch (error: any) {
     console.error('❌ API 오류:', error);

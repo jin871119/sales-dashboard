@@ -390,6 +390,7 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
     storeInfo: StoreInfo;
     sales: number;
     quantity: number;
+    transactions: number;
   }>();
   
   records.forEach(r => {
@@ -400,12 +401,14 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
         storeName: r.storeName,
         storeInfo: r.storeInfo,
         sales: 0,
-        quantity: 0
+        quantity: 0,
+        transactions: 0
       });
     }
     const store = storeMap.get(key)!;
     store.sales += r.totalSales;  // M열 = 판매액
     store.quantity += r.totalQuantity;  // L열 = 판매수량
+    store.transactions += 1;  // 레코드 수 = 거래건수
   });
   
   const storeStats = Array.from(storeMap.values())
@@ -418,6 +421,7 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       storeRegion: store.storeInfo.region,
       sales: store.sales,
       quantity: store.quantity,
+      transactions: store.transactions,
       share: (store.sales / totalSales) * 100,
       rank: index + 1
     }));
