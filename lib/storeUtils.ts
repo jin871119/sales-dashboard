@@ -52,21 +52,21 @@ export function getStoreRegion(storeName: string): string {
       storeName.includes('가산') || storeName.includes('송파') ||
       storeName.includes('가든5')) return '서울';
   
-  // 경기
-  if (storeName.includes('판교') || storeName.includes('분당') ||
-      storeName.includes('일산') || storeName.includes('평촌') ||
-      storeName.includes('수원') || storeName.includes('안양') ||
-      storeName.includes('성남') || storeName.includes('용인') ||
-      storeName.includes('하남') || storeName.includes('고양') ||
-      storeName.includes('동탄') || storeName.includes('광교') ||
-      storeName.includes('킨텍스') || storeName.includes('중동') ||
-      storeName.includes('안산') || storeName.includes('광명') ||
-      storeName.includes('김포') || storeName.includes('부천') ||
-      storeName.includes('시흥') || storeName.includes('오산') ||
-      storeName.includes('평택') || storeName.includes('화성') ||
-      storeName.includes('안성') || storeName.includes('구리') ||
-      storeName.includes('남양주') || storeName.includes('의정부') ||
-      storeName.includes('고양') || storeName.includes('파주') ||
+  // 경기 (경기광주 먼저 체크 - 광주/전라와 구분)
+  if (storeName.includes('경기광주') || storeName.includes('판교') || 
+      storeName.includes('분당') || storeName.includes('일산') || 
+      storeName.includes('평촌') || storeName.includes('수원') || 
+      storeName.includes('안양') || storeName.includes('성남') || 
+      storeName.includes('용인') || storeName.includes('하남') || 
+      storeName.includes('고양') || storeName.includes('동탄') || 
+      storeName.includes('광교') || storeName.includes('킨텍스') || 
+      storeName.includes('중동') || storeName.includes('안산') || 
+      storeName.includes('광명') || storeName.includes('김포') || 
+      storeName.includes('부천') || storeName.includes('시흥') || 
+      storeName.includes('오산') || storeName.includes('평택') || 
+      storeName.includes('화성') || storeName.includes('안성') || 
+      storeName.includes('구리') || storeName.includes('남양주') || 
+      storeName.includes('의정부') || storeName.includes('파주') ||
       storeName.includes('양주') || storeName.includes('포천') ||
       storeName.includes('가평') || storeName.includes('연천') ||
       storeName.includes('퍼스트빌리지') || storeName.includes('신세계경기') ||
