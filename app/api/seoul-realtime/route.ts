@@ -29,18 +29,15 @@ export async function GET(request: Request) {
     
     switch (type) {
       case 'population':
-        // 실시간 인구 API (서울 생활인구)
-        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata/1/5`;
-        break;
-        
       case 'congestion':
-        // 실시간 혼잡도 API (도심권역 혼잡도)
-        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata_ppltn/1/50`;
+        // 서울시 주요 50곳 실시간 도시데이터 (CITYDATA)
+        // 공식 문서: http://openapi.seoul.go.kr:8088/(인증키)/json/citydata/1/5/
+        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata/1/50/`;
         break;
         
       case 'commercial':
         // 실시간 상권 현황 API
-        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata_stts/1/20`;
+        apiUrl = `${BASE_URL}/${API_KEY}/json/citydata_stts/1/20/`;
         break;
         
       default:
@@ -53,16 +50,34 @@ export async function GET(request: Request) {
     console.log(`📡 API 호출: ${apiUrl}`);
     
     const response = await fetch(apiUrl, {
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
+      cache: 'no-store',
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API 응답 오류:', response.status, errorText);
       throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
     }
     
-    const data = await response.json();
+    const contentType = response.headers.get('content-type');
+    console.log('📋 Content-Type:', contentType);
+    
+    const responseText = await response.text();
+    console.log('📄 응답 본문 샘플:', responseText.substring(0, 200));
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError: any) {
+      console.error('❌ JSON 파싱 오류:', parseError);
+      console.error('응답 내용:', responseText.substring(0, 500));
+      throw new Error(`API 응답이 JSON 형식이 아닙니다. API 키와 엔드포인트를 확인하세요.`);
+    }
     
     // API 응답 구조 확인
     console.log('📊 API 응답 키:', Object.keys(data));
@@ -104,10 +119,12 @@ function processSeoulData(raw: any, type: string) {
     switch (type) {
       case 'population':
       case 'congestion':
-        // citydata 또는 citydata_ppltn 응답 구조
-        const cityData = raw.citydata || raw.citydata_ppltn || raw.CITYDATA || raw.CITYDATA_PPLTN;
+        // 서울시 CITYDATA API 응답 구조
+        // CITYDATA.RESULT, CITYDATA.list_total_count, CITYDATA.row 등
+        const cityData = raw.CITYDATA || raw.citydata;
         
-        if (!cityData || !cityData.row) {
+        if (!cityData) {
+          console.error('❌ CITYDATA 키를 찾을 수 없음. 응답 구조:', Object.keys(raw));
           return {
             areas: [],
             summary: {
@@ -117,7 +134,25 @@ function processSeoulData(raw: any, type: string) {
           };
         }
         
-        const areas = cityData.row.map((item: any) => ({
+        // RESULT 코드 확인
+        if (cityData.RESULT) {
+          console.log('📊 API RESULT:', cityData.RESULT);
+        }
+        
+        const rows = cityData.row || [];
+        
+        if (rows.length === 0) {
+          console.warn('⚠️ 데이터 행이 비어있음');
+          return {
+            areas: [],
+            summary: {
+              totalAreas: 0,
+              avgCongestion: 0
+            }
+          };
+        }
+        
+        const areas = rows.map((item: any) => ({
           name: item.AREA_NM || item.area_nm || '알 수 없음',
           congestionLevel: item.AREA_CONGEST_LVL || item.area_congest_lvl || '보통',
           congestionMessage: item.AREA_CONGEST_MSG || item.area_congest_msg || '',
