@@ -312,11 +312,11 @@ function parseWeeklySalesData(data: any[][]): WeeklySalesRecord[] {
         salesType: String(row[8] || ''),
         customerType: String(row[9] || ''),
         discountRate: String(row[10] || ''),
-        totalQuantity: typeof row[11] === 'number' ? row[11] : 0,
-        totalSales: typeof row[12] === 'number' ? row[12] : 0,
-        totalTagPrice: typeof row[13] === 'number' ? row[13] : 0,
-        normalQuantity: typeof row[14] === 'number' ? row[14] : 0,
-        normalSales: typeof row[15] === 'number' ? row[15] : 0,
+        totalQuantity: typeof row[11] === 'number' ? row[11] : 0,  // L열 - 판매수량
+        totalSales: typeof row[12] === 'number' ? row[12] : 0,  // M열 - 판매액
+        totalTagPrice: typeof row[13] === 'number' ? row[13] : 0,  // N열 - 판매택가
+        normalQuantity: typeof row[14] === 'number' ? row[14] : 0,  // O열 - 정상_판매수량
+        normalSales: typeof row[15] === 'number' ? row[15] : 0,  // P열 - 정상_판매액
         normalTagPrice: typeof row[16] === 'number' ? row[16] : 0,
         returnQuantity: typeof row[17] === 'number' ? row[17] : 0,
         returnSales: typeof row[18] === 'number' ? row[18] : 0,
@@ -338,9 +338,9 @@ function parseWeeklySalesData(data: any[][]): WeeklySalesRecord[] {
 export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAnalytics {
   console.log(`🔍 분석 시작: ${records.length}개 레코드`);
   
-  // 전체 통계 - 정상_판매수량과 정상_판매액 사용
-  const totalSales = records.reduce((sum, r) => sum + r.normalSales, 0);
-  const totalQuantity = records.reduce((sum, r) => sum + r.normalQuantity, 0);
+  // 전체 통계 - M열(판매액), L열(판매수량) 사용
+  const totalSales = records.reduce((sum, r) => sum + r.totalSales, 0);  // M열 = 판매액
+  const totalQuantity = records.reduce((sum, r) => sum + r.totalQuantity, 0);  // L열 = 판매수량
   const totalReturns = records.reduce((sum, r) => sum + Math.abs(r.returnSales), 0);
   
   // 날짜 추출
@@ -362,7 +362,7 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
     }
   }
   
-  // 일별 집계 - 정상_판매수량과 정상_판매액 사용
+  // 일별 집계 - M열(판매액), L열(판매수량) 사용
   const dailyMap = new Map<string, { sales: number; quantity: number; transactions: number }>();
   records.forEach(r => {
     Object.entries(r.dailySales).forEach(([date, qty]) => {
@@ -371,9 +371,9 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       }
       const daily = dailyMap.get(date)!;
       daily.quantity += qty;
-      // 정상_판매액을 비례 배분하여 사용
-      if (r.normalQuantity > 0) {
-        daily.sales += (r.normalSales / r.normalQuantity) * qty;
+      // M열(판매액)을 L열(판매수량)으로 비례 배분
+      if (r.totalQuantity > 0) {  // L열 = 판매수량
+        daily.sales += (r.totalSales / r.totalQuantity) * qty;  // M열 = 판매액
       }
       daily.transactions += 1;
     });
@@ -404,8 +404,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       });
     }
     const store = storeMap.get(key)!;
-    store.sales += r.normalSales;
-    store.quantity += r.normalQuantity;
+    store.sales += r.totalSales;  // M열 = 판매액
+    store.quantity += r.totalQuantity;  // L열 = 판매수량
   });
   
   const storeStats = Array.from(storeMap.values())
@@ -520,8 +520,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       itemMap.set(r.item, { sales: 0, quantity: 0 });
     }
     const item = itemMap.get(r.item)!;
-    item.sales += r.normalSales;
-    item.quantity += r.normalQuantity;
+    item.sales += r.totalSales;  // M열 = 판매액
+    item.quantity += r.totalQuantity;  // L열 = 판매수량
   });
   
   const itemStats = Array.from(itemMap.entries())
@@ -540,8 +540,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       seasonMap.set(r.season, { sales: 0, quantity: 0 });
     }
     const season = seasonMap.get(r.season)!;
-    season.sales += r.normalSales;
-    season.quantity += r.normalQuantity;
+    season.sales += r.totalSales;  // M열 = 판매액
+    season.quantity += r.totalQuantity;  // L열 = 판매수량
   });
   
   const seasonStats = Array.from(seasonMap.entries())
@@ -575,8 +575,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       });
     }
     const product = productMap.get(r.productCode)!;
-    product.sales += r.normalSales;
-    product.quantity += r.normalQuantity;
+    product.sales += r.totalSales;  // M열 = 판매액
+    product.quantity += r.totalQuantity;  // L열 = 판매수량
     
     // 매장별 판매 추가
     const storeKey = `${r.storeCode}|${r.storeName}`;
@@ -584,8 +584,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[]): WeeklySalesAna
       product.storeBreakdown.set(storeKey, { storeName: r.storeName, quantity: 0, sales: 0 });
     }
     const storeData = product.storeBreakdown.get(storeKey)!;
-    storeData.quantity += r.normalQuantity;
-    storeData.sales += r.normalSales;
+    storeData.quantity += r.totalQuantity;  // L열 = 판매수량
+    storeData.sales += r.totalSales;  // M열 = 판매액
   });
   
   const bestSellers = Array.from(productMap.entries())
