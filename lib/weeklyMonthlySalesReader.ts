@@ -152,19 +152,30 @@ function excelDateToJSDate(serial: number): string {
 // 일주월별 판매 엑셀 파일 읽기
 export function readWeeklySalesExcel(): WeeklySalesRecord[] {
   try {
-    // 프로젝트 루트 경로
     const rootDir = process.cwd();
     
-    // 엑셀 파일 찾기
+    // 1. JSON 파일 먼저 시도 (Vercel 배포용)
+    const jsonPath = path.join(rootDir, 'public', 'weekly-sales-data.json');
+    if (fs.existsSync(jsonPath)) {
+      console.log('📊 JSON 파일 읽는 중:', jsonPath);
+      const jsonData = fs.readFileSync(jsonPath, 'utf8');
+      const data = JSON.parse(jsonData) as any[][];
+      console.log(`✅ JSON에서 ${data.length.toLocaleString()}행 읽기 완료`);
+      return parseWeeklySalesData(data);
+    }
+    
+    // 2. 엑셀 파일 시도 (로컬 개발용)
+    console.log('📊 엑셀 파일 찾는 중...');
     const files = fs.readdirSync(rootDir);
     const excelFile = files.find(f => 
       f.startsWith('mw_일주월별_판매') && 
       f.endsWith('.xlsx') && 
-      !f.startsWith('~$') // 임시 파일 제외
+      !f.startsWith('~$')
     );
     
     if (!excelFile) {
       console.error('프로젝트 루트:', rootDir);
+      console.error('JSON 경로:', jsonPath);
       console.error('파일 목록:', files.filter(f => f.includes('일주월별')));
       throw new Error('mw_일주월별_판매 엑셀 파일을 찾을 수 없습니다.');
     }
@@ -172,19 +183,19 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
     const filePath = path.join(rootDir, excelFile);
     console.log(`📊 읽는 중: ${filePath}`);
     
-    // 파일 접근 가능 여부 확인
+    // 파일 접근 확인
     try {
       fs.accessSync(filePath, fs.constants.R_OK);
     } catch (e) {
       throw new Error(`파일에 접근할 수 없습니다. 엑셀에서 파일이 열려있으면 닫아주세요: ${filePath}`);
     }
     
-    // 버퍼로 파일 읽기 (파일 잠금 문제 해결)
+    // 버퍼로 파일 읽기
     console.log('📖 파일을 버퍼로 읽는 중...');
     const fileBuffer = fs.readFileSync(filePath);
     console.log(`✅ 버퍼 읽기 완료 (${(fileBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
     
-    // 버퍼에서 워크북 파싱
+    // 워크북 파싱
     const workbook = XLSX.read(fileBuffer, { 
       type: 'buffer',
       cellDates: true,
@@ -193,6 +204,18 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
     });
     const worksheet = workbook.Sheets['report'];
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
+    
+    return parseWeeklySalesData(data);
+    
+  } catch (error) {
+    console.error('엑셀 파일 읽기 실패:', error);
+    throw error;
+  }
+}
+
+// 데이터 파싱 로직 분리
+function parseWeeklySalesData(data: any[][]): WeeklySalesRecord[] {
+  try {
     
     // 헤더는 2번째 행 (인덱스 1)
     const headers = data[1];
@@ -302,11 +325,11 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
       });
     }
     
-    console.log(`✅ ${records.length.toLocaleString()}개 레코드 읽기 완료`);
+    console.log(`✅ ${records.length.toLocaleString()}개 레코드 파싱 완료`);
     return records;
     
   } catch (error) {
-    console.error('엑셀 파일 읽기 실패:', error);
+    console.error('데이터 파싱 실패:', error);
     throw error;
   }
 }
