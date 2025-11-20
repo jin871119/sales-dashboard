@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import MetricCard from "./MetricCard";
 import SalesChart from "./SalesChart";
 import WeeklySalesChart from "./WeeklySalesChart";
@@ -10,7 +11,6 @@ import DataTable from "./DataTable";
 import SummaryDashboard from "./SummaryDashboard";
 import StoreAreaSelector from "./StoreAreaSelector";
 import WeeklySalesDashboard from "./WeeklySales/WeeklySalesDashboard";
-import StoreDistributionDashboard from "./StoreDistribution/StoreDistributionDashboard";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -23,6 +23,22 @@ import {
   PieChart as PieChartIcon
 } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
+
+// Plotly를 사용하는 컴포넌트는 동적으로 로드 (SSR 방지)
+const StoreDistributionDashboard = dynamic(
+  () => import("./StoreDistribution/StoreDistributionDashboard"),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center min-h-[500px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-700 font-medium">3D 시각화 로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+);
 
 export default function EnhancedDashboard() {
   const [loading, setLoading] = useState(true);
