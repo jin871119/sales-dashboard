@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   Users, 
   MapPin, 
@@ -44,7 +44,7 @@ export default function SeoulRealtimeDashboard() {
   const [dataType, setDataType] = useState<'population' | 'congestion' | 'commercial'>('congestion');
   const [selectedArea, setSelectedArea] = useState<SeoulAreaData | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -66,7 +66,7 @@ export default function SeoulRealtimeDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dataType]);
 
   useEffect(() => {
     fetchData();
@@ -75,7 +75,7 @@ export default function SeoulRealtimeDashboard() {
     const interval = setInterval(fetchData, 10 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [dataType]);
+  }, [fetchData]);
 
   // 혼잡도에 따른 색상 반환
   const getCongestionColor = (level: string) => {

@@ -785,40 +785,17 @@ export default function WeeklySalesDashboard() {
                         </button>
                       </td>
                     </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })()}
+                  ))}
+                </tbody>
+              </table>
+            </div>
             
             {/* 필터링 결과 확인 */}
-          {(() => {
-            let filtered = data.bestSellers || [];
-            if (selectedSeason !== "전체") {
-              filtered = filtered.filter((p: any) => p.season === selectedSeason);
-            }
-            if (selectedChannel !== "전체") {
-              filtered = filtered.filter((p: any) => {
-                if (!p.topStores || p.topStores.length === 0) return false;
-                return p.topStores.some((store: any) => {
-                  const storeName = store.storeName || '';
-                  switch (selectedChannel) {
-                    case "국내": return storeName.includes('(직)') || storeName.includes('롯데') || storeName.includes('현대') || storeName.includes('신세계') || storeName.includes('갤러리아');
-                    case "면세": return storeName.includes('면세');
-                    case "도매": return storeName.includes('(대-위)') || storeName.includes('(대리)');
-                    case "RF": return storeName.includes('RF');
-                    default: return true;
-                  }
-                });
-              });
-            }
-            return filtered.length === 0 && data.bestSellers && data.bestSellers.length > 0 ? (
+            {(!data.bestSellers || data.bestSellers.length === 0) && (
               <div className="text-center py-8 text-gray-500">
                 필터 조건에 맞는 제품이 없습니다.
               </div>
-            ) : null;
-          })()}
+            )}
           </div>
 
           {/* 선택한 제품의 Top 5 매장 - 모달 */}
