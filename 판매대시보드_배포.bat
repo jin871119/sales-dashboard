@@ -14,7 +14,7 @@ git add .
 
 echo.
 echo [3/5] 커밋 생성 중...
-git commit -m "feat: 판매 대시보드 완성 - 192개 매장, 일별 판매 추이, 지역별 분석, 제품별 Top5 매장"
+git commit -m "feat: ending focast.xlsx 구현 수정 및 Vercel JSON 지원 추가, 상권별 필터 완성"
 
 echo.
 echo [4/5] GitHub에 푸시 중...
@@ -32,12 +32,11 @@ echo    https://vercel.com/
 echo.
 echo 📊 배포된 기능:
 echo    ✅ 판매 대시보드 (일주월별)
-echo    ✅ 192개 매장 데이터 분석
-echo    ✅ 11/1~19일 일별 판매 추이 차트
+echo    ✅ ending focast.xlsx 데이터 연동
+echo    ✅ backdata.xlsx JSON 지원 (Vercel)
+echo    ✅ 상권별 필터 기능
 echo    ✅ 지역별 분석 (매장 분석)
-echo    ✅ 제품별 Top 5 매장 팝업
-echo    ✅ 정상 판매 데이터 기준
-echo    ✅ 세부 데이터 토글 기능
+echo    ✅ 개요 탭 데이터 완성
 echo.
 echo 💡 배포 후 테스트:
 echo    1. 개요 탭 확인

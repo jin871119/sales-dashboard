@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 export interface MonthlyData {
@@ -19,10 +19,36 @@ export interface WeeklyData {
 
 /**
  * backdata.xlsx 파일의 "월별목표" 시트 읽기
+ * Vercel 환경에서는 public/backdata.json 파일을 우선적으로 읽음
  */
 export function readMonthlyTargetSheet(filename: string): MonthlyData[] {
   try {
-    const filePath = join(process.cwd(), filename);
+    const rootDir = process.cwd();
+    
+    // 1. JSON 파일 먼저 시도 (Vercel 배포용)
+    const jsonPath = join(rootDir, 'public', 'backdata.json');
+    if (existsSync(jsonPath)) {
+      console.log('📊 JSON 파일 읽는 중:', jsonPath);
+      const jsonData = JSON.parse(readFileSync(jsonPath, 'utf8'));
+      
+      // "월별목표" 시트 찾기
+      const sheetName = Object.keys(jsonData.data || {}).find(name => 
+        name.includes('월별') || name.includes('목표') || name.includes('Monthly')
+      );
+      
+      if (sheetName && jsonData.data[sheetName]) {
+        const rawData = jsonData.data[sheetName].raw || jsonData.data[sheetName];
+        return parseMonthlyData(rawData);
+      }
+    }
+    
+    // 2. 엑셀 파일 시도 (로컬 개발용)
+    const filePath = join(rootDir, filename);
+    if (!existsSync(filePath)) {
+      console.log('⚠️  엑셀 파일을 찾을 수 없습니다:', filePath);
+      return [];
+    }
+    
     const file = readFileSync(filePath);
     const workbook = XLSX.read(file, { type: 'buffer' });
 
@@ -47,7 +73,19 @@ export function readMonthlyTargetSheet(filename: string): MonthlyData[] {
 
     const worksheet = workbook.Sheets[sheetName];
     const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+    
+    return parseMonthlyData(rawData);
+  } catch (error) {
+    console.error('월별목표 시트 읽기 오류:', error);
+    throw error;
+  }
+}
 
+/**
+ * 월별 데이터 파싱 (JSON 또는 엑셀 rawData)
+ */
+function parseMonthlyData(rawData: any[][]): MonthlyData[] {
+  try {
     console.log(`📊 총 ${rawData.length}행 발견`);
 
     if (rawData.length === 0) {
