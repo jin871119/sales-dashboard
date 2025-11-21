@@ -14,7 +14,7 @@ git add .
 
 echo.
 echo [3/5] 커밋 생성 중...
-git commit -m "feat: ending focast.xlsx 구현 수정 및 Vercel JSON 지원 추가, 상권별 필터 완성"
+git commit -m "feat: 상권 필터를 backdata.xlsx 상권구분 시트 기반으로 변경, 월별 매출 추이 데이터 파싱 개선, 빌드 에러 수정"
 
 echo.
 echo [4/5] GitHub에 푸시 중...

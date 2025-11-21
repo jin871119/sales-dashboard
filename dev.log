@@ -164,4 +164,54 @@ C:\Users\AD0883\AI\영업대쉬보드>[main c85a623] feat: 상권 필터를 back
 C:\Users\AD0883\AI\영업대쉬보드>To https://github.com/jin871119/sales-dashboard.git
    8091e67..c85a623  main -> main
 
-C:\Users\AD0883\AI\영업대쉬보드>
+C:\Users\AD0883\AI\영업대쉬보드>╔════════════════════════════════════════╗
+║   판매 대시보드 Vercel 배포           ║
+╚════════════════════════════════════════╝
+
+[1/5] Git 상태 확인...
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   app/api/dashboard/route.ts
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+[2/5] 변경사항 추가 중...
+warning: in the working copy of 'app/api/dashboard/route.ts', LF will be replaced by CRLF the next time Git touches it
+
+[3/5] 커밋 생성 중...
+[main 1a415ff] feat: ending focast.xlsx 구현 수정 및 Vercel JSON 지원 추가, 상권별 필터 완성
+ 1 file changed, 140 insertions(+), 14 deletions(-)
+
+[4/5] GitHub에 푸시 중...
+To https://github.com/jin871119/sales-dashboard.git
+   e6020d7..1a415ff  main -> main
+
+[5/5] Vercel 배포 트리거됨!
+
+════════════════════════════════════════
+✅ 배포 완료!
+════════════════════════════════════════
+
+🌐 Vercel 대시보드에서 배포 상태 확인:
+   https://vercel.com/
+
+📊 배포된 기능:
+   ✅ 판매 대시보드 (일주월별)
+   ✅ ending focast.xlsx 데이터 연동
+   ✅ backdata.xlsx JSON 지원 (Vercel)
+   ✅ 상권별 필터 기능
+   ✅ 지역별 분석 (매장 분석)
+   ✅ 개요 탭 데이터 완성
+
+💡 배포 후 테스트:
+   1. 개요 탭 확인
+   2. 판매 탭 (개요 바로 옆) 확인
+   3. 일별 판매 추이 차트 확인
+   4. 세부 데이터 보기 버튼 테스트
+   5. 제품 분석 - 베스트셀러 클릭 테스트
+
+Press any key to continue . . . 
