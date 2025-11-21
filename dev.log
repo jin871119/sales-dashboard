@@ -139,4 +139,29 @@ operable program or batch file.
 C:\Users\AD0883\AI\영업대쉬보드>파일 없음
 
 C:\Users\AD0883\AI\영업대쉬보드>
+C:\Users\AD0883\AI\영업대쉬보드>On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   components/SeoulRealtime/SeoulRealtimeDashboard.tsx
+	modified:   components/WeeklySales/WeeklySalesDashboard.tsx
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   dev.log
+
+
+C:\Users\AD0883\AI\영업대쉬보드>'\판매대시보드_배포.bat' is not recognized as an internal or external command,
+operable program or batch file.
+
+C:\Users\AD0883\AI\영업대쉬보드>warning: in the working copy of 'dev.log', LF will be replaced by CRLF the next time Git touches it
+
+C:\Users\AD0883\AI\영업대쉬보드>[main c85a623] feat: 상권 필터를 backdata.xlsx 상권구분 시트 기반으로 변경, 빌드 에러 수정
+ 3 files changed, 11 insertions(+), 33 deletions(-)
+
+C:\Users\AD0883\AI\영업대쉬보드>To https://github.com/jin871119/sales-dashboard.git
+   8091e67..c85a623  main -> main
+
 C:\Users\AD0883\AI\영업대쉬보드>
