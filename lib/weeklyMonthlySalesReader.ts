@@ -137,6 +137,20 @@ export interface WeeklySalesAnalytics {
     quantity: number;
     sales: number;
   }[];
+  
+  // 워스트 아이템
+  worstSellers: {
+    productCode: string;
+    productName: string;
+    item: string;
+    season: string;
+    quantity: number;
+    sales: number;
+    topStores?: Array<{ storeName: string; quantity: number; sales: number }>; // 매장 정보 추가
+  }[];
+  
+  // 캐시 키 (내부 사용)
+  _cacheKey?: string;
 }
 
 // 엑셀 날짜 시리얼 번호를 날짜로 변환
@@ -338,8 +352,127 @@ function parseWeeklySalesData(data: any[][]): WeeklySalesRecord[] {
 }
 
 // 분석 데이터 생성
-export function analyzeWeeklySales(records: WeeklySalesRecord[], period: 'weekly' | 'monthly' = 'monthly'): WeeklySalesAnalytics {
-  console.log(`🔍 분석 시작: ${records.length}개 레코드, 기간: ${period}`);
+export function analyzeWeeklySales(
+  records: WeeklySalesRecord[], 
+  period: 'weekly' | 'monthly' = 'monthly',
+  channelFilter?: '국내' | '면세' | '도매' | 'RF', // 상권 필터 추가
+  seasonFilter?: string // 시즌 필터 추가
+): WeeklySalesAnalytics {
+  console.log(`🔍 분석 시작: ${records.length}개 레코드, 기간: ${period}${channelFilter ? `, 상권: ${channelFilter}` : ''}${seasonFilter ? `, 시즌: ${seasonFilter}` : ''}`);
+  
+  // 상권 필터 적용 (backdata.xlsx의 "상권구분" 시트 사용)
+  if (channelFilter) {
+    const originalCount = records.length;
+    const matchedStores = new Set<string>();
+    
+    // backdata.xlsx의 "상권구분" 시트에서 상권 정보 읽기
+    let storeAreaMap: Map<string, string> = new Map();
+    try {
+      const { readStoreArea } = require('./storePerformanceReader');
+      storeAreaMap = readStoreArea('backdata.xlsx');
+      console.log(`📊 상권구분 시트에서 ${storeAreaMap.size}개 매장 정보 로드`);
+    } catch (error: any) {
+      console.log(`⚠️  상권구분 시트 읽기 실패, 키워드 기반 필터링 사용: ${error.message}`);
+    }
+    
+    records = records.filter(r => {
+      const storeName = r.storeName || '';
+      let matches = false;
+      
+      // 먼저 상권구분 시트에서 상권 정보 확인
+      if (storeAreaMap.size > 0) {
+        const area = storeAreaMap.get(storeName);
+        if (area) {
+          // 상권구분 시트의 상권명과 필터 비교 (유연한 매칭)
+          const normalizedArea = area.trim().toUpperCase();
+          const normalizedFilter = channelFilter.toUpperCase();
+          
+          // 정확히 일치하거나 포함 관계 확인
+          matches = normalizedArea === normalizedFilter || 
+                   normalizedArea.includes(normalizedFilter) ||
+                   normalizedFilter.includes(normalizedArea) ||
+                   // 다양한 형식 지원
+                   (normalizedFilter === '국내' && (normalizedArea.includes('국내') || normalizedArea.includes('내수'))) ||
+                   (normalizedFilter === '면세' && normalizedArea.includes('면세')) ||
+                   (normalizedFilter === '도매' && (normalizedArea.includes('도매') || normalizedArea.includes('대리'))) ||
+                   (normalizedFilter === 'RF' && normalizedArea.includes('RF'));
+        } else {
+          // 상권구분 시트에 없는 매장은 키워드 기반 필터링 사용 (폴백)
+          switch (channelFilter) {
+            case "국내":
+              matches = storeName.includes('(직)') || 
+                       storeName.includes('롯데') || 
+                       storeName.includes('현대') || 
+                       storeName.includes('신세계') ||
+                       storeName.includes('갤러리아') ||
+                       storeName.includes('AK');
+              break;
+            case "면세":
+              matches = storeName.includes('면세');
+              break;
+            case "도매":
+              matches = storeName.includes('(대-위)') || 
+                       storeName.includes('(대리)') ||
+                       storeName.includes('(대)');
+              break;
+            case "RF":
+              const upperStoreName = storeName.toUpperCase();
+              matches = upperStoreName.includes('RF') || 
+                       upperStoreName.includes('(RF)') ||
+                       upperStoreName.includes('RF점') ||
+                       upperStoreName.includes('RF매장');
+              break;
+          }
+        }
+      } else {
+        // 상권구분 시트를 읽을 수 없으면 키워드 기반 필터링 사용
+        switch (channelFilter) {
+          case "국내":
+            matches = storeName.includes('(직)') || 
+                     storeName.includes('롯데') || 
+                     storeName.includes('현대') || 
+                     storeName.includes('신세계') ||
+                     storeName.includes('갤러리아') ||
+                     storeName.includes('AK');
+            break;
+          case "면세":
+            matches = storeName.includes('면세');
+            break;
+          case "도매":
+            matches = storeName.includes('(대-위)') || 
+                     storeName.includes('(대리)') ||
+                     storeName.includes('(대)');
+            break;
+          case "RF":
+            const upperStoreName = storeName.toUpperCase();
+            matches = upperStoreName.includes('RF') || 
+                     upperStoreName.includes('(RF)') ||
+                     upperStoreName.includes('RF점') ||
+                     upperStoreName.includes('RF매장');
+            break;
+        }
+      }
+      
+      if (matches && !matchedStores.has(storeName)) {
+        matchedStores.add(storeName);
+      }
+      
+      return matches;
+    });
+    
+    console.log(`📊 상권 필터 적용 (${channelFilter}): ${originalCount}개 → ${records.length}개 레코드`);
+    console.log(`   → 매칭된 매장 수: ${matchedStores.size}개`);
+    if (matchedStores.size > 0 && matchedStores.size <= 10) {
+      console.log(`   → 매장 목록: ${Array.from(matchedStores).join(', ')}`);
+    }
+  }
+  
+  // 시즌 필터 적용 (원본 데이터 레벨에서)
+  if (seasonFilter) {
+    const originalCount = records.length;
+    records = records.filter(r => r.season === seasonFilter);
+    console.log(`📦 시즌 필터 적용: ${originalCount}개 → ${records.length}개 레코드`);
+  }
   
   // 날짜 추출 (먼저 날짜를 확인해서 주간 필터링에 사용)
   const allDates = new Set<string>();
@@ -649,7 +782,28 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[], period: 'weekly
     })
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 50);
-  
+
+  // 워스트 아이템 (판매수량이 가장 적은 제품들) - 매장 정보 포함
+  const worstSellers = Array.from(productMap.entries())
+    .map(([code, data]) => {
+      // 매장별 Top 5 (베스트셀러와 동일하게)
+      const topStores = Array.from(data.storeBreakdown.values())
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5);
+      
+      return {
+        productCode: code,
+        productName: data.productName,
+        item: data.item,
+        season: data.season,
+        quantity: data.quantity,
+        sales: data.sales,
+        topStores // 매장 정보 추가 (상권 필터용)
+      };
+    })
+    .sort((a, b) => a.quantity - b.quantity) // 판매수량 오름차순 정렬
+    .slice(0, 20); // 하위 20개
+
   return {
     _period: period, // 캐시 비교용
     totalSales,
@@ -682,7 +836,8 @@ export function analyzeWeeklySales(records: WeeklySalesRecord[], period: 'weekly
     },
     itemStats,
     seasonStats,
-    bestSellers
+    bestSellers,
+    worstSellers // 워스트 아이템 추가
   };
 }
 

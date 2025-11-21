@@ -25,31 +25,36 @@ export async function GET(request: Request) {
     const brand = searchParams.get('brand');
     const region = searchParams.get('region');
     const onlineOnly = searchParams.get('onlineOnly');
+    const channel = searchParams.get('channel') as '국내' | '면세' | '도매' | 'RF' | null; // 상권 필터 추가
+    const season = searchParams.get('season'); // 시즌 필터 추가
     
     console.log(`📅 기간 필터: ${period}`);
+    if (channel) console.log(`🏪 상권 필터: ${channel}`);
+    if (season) console.log(`📦 시즌 필터: ${season}`);
+    
+    // 캐시 키 생성 (period, channel, season 조합)
+    const cacheKey = `${period}_${channel || 'all'}_${season || 'all'}`;
     
     // 캐시 확인
     const now = Date.now();
-    if (FORCE_REFRESH || !cachedData || (now - cacheTime) > CACHE_DURATION) {
+    if (FORCE_REFRESH || !cachedData || (now - cacheTime) > CACHE_DURATION || cachedData._cacheKey !== cacheKey) {
       console.log('📊 일주월별 판매 데이터 읽는 중...');
-      console.log('⏰ 캐시 시간 초과, 새로 읽기 시작');
+      console.log('⏰ 캐시 시간 초과 또는 필터 변경, 새로 읽기 시작');
       
       const records = readWeeklySalesExcel();
       console.log(`✅ ${records.length}개 레코드 읽음`);
       
-      cachedData = analyzeWeeklySales(records, period as 'weekly' | 'monthly');
+      cachedData = analyzeWeeklySales(
+        records, 
+        period as 'weekly' | 'monthly', 
+        channel || undefined,
+        season || undefined
+      );
+      cachedData._cacheKey = cacheKey; // 캐시 키 저장
       cacheTime = now;
       console.log('✅ 데이터 캐시 완료');
     } else {
       console.log('⚡ 캐시된 데이터 사용');
-      // period가 변경되면 재분석
-      const currentPeriod = cachedData._period || 'monthly';
-      if (currentPeriod !== period) {
-        console.log(`⚡ 기간 변경 감지 (${currentPeriod} → ${period}), 재분석 시작`);
-        const records = readWeeklySalesExcel();
-        cachedData = analyzeWeeklySales(records, period as 'weekly' | 'monthly');
-        cacheTime = now;
-      }
     }
     
     let data = { ...cachedData };
@@ -110,7 +115,8 @@ export async function GET(request: Request) {
         return NextResponse.json({
           itemStats: data.itemStats,
           seasonStats: data.seasonStats,
-          bestSellers: data.bestSellers.slice(0, 20)
+          bestSellers: data.bestSellers.slice(0, 20),
+          worstSellers: data.worstSellers || [] // 워스트 아이템 추가
         });
       
       case 'analytics':
@@ -188,6 +194,7 @@ export async function GET(request: Request) {
           itemStats: data.itemStats || [],
           seasonStats: data.seasonStats || [],
           bestSellers: data.bestSellers || [],
+          worstSellers: data.worstSellers || [], // 워스트 아이템 추가
           storeTypeStats: data.storeTypeStats || [],
           departmentBrandStats: data.departmentBrandStats || [],
           onlineOfflineStats: data.onlineOfflineStats || {}

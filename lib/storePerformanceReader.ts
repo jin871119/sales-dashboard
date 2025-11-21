@@ -106,10 +106,29 @@ export function readStoreArea(filename: string): Map<string, string> {
     const storeAreaMap = new Map<string, string>();
 
     rawData.forEach(row => {
-      const storeName = String(row['매장명'] || '').trim();
-      const area = String(row['상권별'] || '').trim();
+      // 다양한 컬럼명 시도
+      const storeName = String(
+        row['매장명'] || 
+        row['매장'] || 
+        row['Store'] || 
+        row['store'] ||
+        row['__EMPTY_1'] ||
+        row['__EMPTY_2'] ||
+        ''
+      ).trim();
+      
+      const area = String(
+        row['상권별'] || 
+        row['상권'] || 
+        row['Area'] || 
+        row['area'] ||
+        row['상권구분'] ||
+        row['__EMPTY_2'] ||
+        row['__EMPTY_3'] ||
+        ''
+      ).trim();
 
-      if (storeName && area) {
+      if (storeName && area && storeName !== '매장명' && area !== '상권별') {
         storeAreaMap.set(storeName, area);
       }
     });

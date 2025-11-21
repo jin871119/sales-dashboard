@@ -38,6 +38,7 @@ interface WeeklySalesData {
   itemStats: any[];
   seasonStats: any[];
   bestSellers: any[];
+  worstSellers?: any[]; // 워스트 아이템 추가
 }
 
 export default function WeeklySalesDashboard() {
@@ -49,13 +50,32 @@ export default function WeeklySalesDashboard() {
   const [selectedRegion, setSelectedRegion] = useState<any | null>(null);
   const [showDailyTable, setShowDailyTable] = useState(false);
   const [productPeriod, setProductPeriod] = useState<"weekly" | "monthly">("monthly");
+  const [selectedSeason, setSelectedSeason] = useState<string>("전체"); // 시즌 필터
+  const [selectedChannel, setSelectedChannel] = useState<string>("전체"); // 상권 필터 (국내, 면세, 도매, RF)
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`/api/weekly-sales?view=analytics&period=${productPeriod}`);
+        
+        // 필터 파라미터 구성
+        const params = new URLSearchParams({
+          view: 'analytics',
+          period: productPeriod
+        });
+        
+        // 상권 필터 추가
+        if (selectedChannel !== "전체") {
+          params.append('channel', selectedChannel);
+        }
+        
+        // 시즌 필터 추가
+        if (selectedSeason !== "전체") {
+          params.append('season', selectedSeason);
+        }
+        
+        const response = await fetch(`/api/weekly-sales?${params.toString()}`);
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -116,7 +136,8 @@ export default function WeeklySalesDashboard() {
             onlineOfflineStats: result.onlineOfflineStats || {},
             itemStats: result.itemStats || [],
             seasonStats: result.seasonStats || [],
-            bestSellers: result.bestSellers || []
+            bestSellers: result.bestSellers || [],
+            worstSellers: result.worstSellers || [] // 워스트 아이템 추가
           };
         } else {
           // 기존 API 구조
@@ -135,7 +156,7 @@ export default function WeeklySalesDashboard() {
     }
 
     fetchData();
-  }, [productPeriod]);
+  }, [productPeriod, selectedChannel, selectedSeason]); // 필터 변경 시 재요청
 
   // ESC 키로 모달 닫기
   useEffect(() => {
@@ -645,15 +666,10 @@ export default function WeeklySalesDashboard() {
       {/* 제품 분석 */}
       {activeSubTab === "products" && (
         <div className="space-y-6">
-          {/* 베스트셀러 */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <Package className="w-5 h-5 text-orange-600" />
-                베스트셀러 Top 20 (클릭하여 매장별 판매 확인)
-              </h3>
-              
-              {/* 주간/월간 필터 버튼 */}
+          {/* 필터 섹션 */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* 주간/월간 필터 */}
               <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setProductPeriod("weekly")}
@@ -676,7 +692,52 @@ export default function WeeklySalesDashboard() {
                   📆 월간 (전체 기간)
                 </button>
               </div>
+
+              {/* 시즌 필터 */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">시즌:</label>
+                <select
+                  value={selectedSeason}
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                >
+                  <option value="전체">전체</option>
+                  {data.seasonStats && data.seasonStats.map((season: any) => (
+                    <option key={season.season} value={season.season}>
+                      {season.season}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 상권 필터 */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">상권:</label>
+                <select
+                  value={selectedChannel}
+                  onChange={(e) => setSelectedChannel(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                >
+                  <option value="전체">전체</option>
+                  <option value="국내">국내</option>
+                  <option value="면세">면세</option>
+                  <option value="도매">도매</option>
+                  <option value="RF">RF</option>
+                </select>
+              </div>
             </div>
+          </div>
+
+          {/* 베스트셀러 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Package className="w-5 h-5 text-orange-600" />
+                베스트셀러 Top 20 (클릭하여 매장별 판매 확인)
+              </h3>
+            </div>
+            
+            {/* 베스트셀러 테이블 (API에서 이미 필터링됨) */}
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -691,7 +752,7 @@ export default function WeeklySalesDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {data.bestSellers.slice(0, 20).map((product, idx) => (
+                  {(data.bestSellers || []).slice(0, 20).map((product, idx) => (
                     <tr 
                       key={product.productCode} 
                       className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors cursor-pointer`}
@@ -724,10 +785,40 @@ export default function WeeklySalesDashboard() {
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+            
+            {/* 필터링 결과 확인 */}
+          {(() => {
+            let filtered = data.bestSellers || [];
+            if (selectedSeason !== "전체") {
+              filtered = filtered.filter((p: any) => p.season === selectedSeason);
+            }
+            if (selectedChannel !== "전체") {
+              filtered = filtered.filter((p: any) => {
+                if (!p.topStores || p.topStores.length === 0) return false;
+                return p.topStores.some((store: any) => {
+                  const storeName = store.storeName || '';
+                  switch (selectedChannel) {
+                    case "국내": return storeName.includes('(직)') || storeName.includes('롯데') || storeName.includes('현대') || storeName.includes('신세계') || storeName.includes('갤러리아');
+                    case "면세": return storeName.includes('면세');
+                    case "도매": return storeName.includes('(대-위)') || storeName.includes('(대리)');
+                    case "RF": return storeName.includes('RF');
+                    default: return true;
+                  }
+                });
+              });
+            }
+            return filtered.length === 0 && data.bestSellers && data.bestSellers.length > 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                필터 조건에 맞는 제품이 없습니다.
+              </div>
+            ) : null;
+          })()}
           </div>
 
           {/* 선택한 제품의 Top 5 매장 - 모달 */}
@@ -867,6 +958,69 @@ export default function WeeklySalesDashboard() {
               </div>
             </div>
           )}
+
+          {/* 워스트 아이템 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Package className="w-5 h-5 text-red-600" />
+                워스트 아이템 Top 20
+              </h3>
+            </div>
+            
+            {/* 워스트 아이템 테이블 (API에서 이미 필터링됨) */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">순위</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">제품명</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">카테고리</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">시즌</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매수량</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">판매액</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {(data.worstSellers || []).slice(0, 20).map((product, idx) => (
+                    <tr 
+                      key={product.productCode} 
+                      className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-red-50 transition-colors`}
+                    >
+                      <td className="px-4 py-3 text-sm font-bold text-gray-900">{idx + 1}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {product.productName}
+                        <div className="text-xs text-gray-500">{product.productCode}</div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                          {product.item}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium">
+                          {product.season}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700 font-medium">
+                        {product.quantity.toLocaleString()}개
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700">
+                        ₩{Math.round(product.sales / 1000).toLocaleString()}K
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* 필터링 결과 확인 */}
+            {(!data.worstSellers || data.worstSellers.length === 0) && (
+              <div className="text-center py-8 text-gray-500">
+                필터 조건에 맞는 제품이 없습니다.
+              </div>
+            )}
+          </div>
 
           {/* 아이템 카테고리별 */}
           <div className="bg-white rounded-xl shadow-lg p-6">
