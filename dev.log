@@ -45,4 +45,21 @@ C:\Users\AD0883\AI\영업대쉬보드>[main 2d35393] feat: 매장분석 상권�
 C:\Users\AD0883\AI\영업대쉬보드>To https://github.com/jin871119/sales-dashboard.git
    0f98f85..2d35393  main -> main
 
+C:\Users\AD0883\AI\영업대쉬보드>warning: in the working copy of 'app/api/dashboard/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/EnhancedDashboard.tsx', LF will be replaced by CRLF the next time Git touches it
+
+C:\Users\AD0883\AI\영업대쉬보드>On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   app/api/dashboard/route.ts
+	modified:   components/EnhancedDashboard.tsx
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   dev.log
+
+
 C:\Users\AD0883\AI\영업대쉬보드>
