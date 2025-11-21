@@ -155,28 +155,154 @@ export async function GET() {
  */
 function parseMonthlyFromJson(jsonData: any): any[] {
   try {
-    const sheetName = Object.keys(jsonData.data || {}).find((name: string) => 
-      name.includes('월별') || name.includes('목표') || name.includes('Monthly')
-    );
+    // JSON 구조 확인: jsonData.data["월별목표"] 또는 jsonData["월별목표"]
+    let sheetData = null;
+    let sheetName = null;
     
-    if (!sheetName || !jsonData.data[sheetName]) {
+    // 먼저 jsonData.data 구조 확인
+    if (jsonData.data) {
+      sheetName = Object.keys(jsonData.data).find((name: string) => 
+        name.includes('월별') || name.includes('목표') || name.includes('Monthly')
+      );
+      if (sheetName) {
+        sheetData = jsonData.data[sheetName];
+      }
+    }
+    
+    // jsonData.data가 없으면 직접 확인
+    if (!sheetData) {
+      sheetName = Object.keys(jsonData).find((name: string) => 
+        name.includes('월별') || name.includes('목표') || name.includes('Monthly')
+      );
+      if (sheetName) {
+        sheetData = jsonData[sheetName];
+      }
+    }
+    
+    if (!sheetData) {
+      console.log('⚠️  JSON에서 "월별목표" 시트를 찾을 수 없습니다.');
       return [];
     }
     
-    const { readMonthlyTargetSheet } = require("@/lib/backDataReader");
-    const rawData = jsonData.data[sheetName].raw || jsonData.data[sheetName];
+    console.log(`📊 JSON에서 "${sheetName}" 시트 발견`);
     
-    // 파싱 함수 호출 (동일한 로직 사용)
-    const parseMonthlyData = (rawData: any[][]) => {
-      // lib/backDataReader.ts의 parseMonthlyData 로직 재사용
-      // 여기서는 간단하게 처리
+    // raw 데이터가 배열의 배열 형태인지 확인
+    let rawData: any[][] = [];
+    
+    if (Array.isArray(sheetData)) {
+      // 이미 배열 형태
+      if (sheetData.length > 0 && Array.isArray(sheetData[0])) {
+        rawData = sheetData as any[][];
+      } else {
+        // 객체 배열인 경우, 컬럼명으로 변환
+        const columns = Object.keys(sheetData[0] || {});
+        rawData = [columns]; // 헤더 행
+        sheetData.forEach((row: any) => {
+          rawData.push(columns.map(col => row[col]));
+        });
+      }
+    } else if (sheetData.raw && Array.isArray(sheetData.raw)) {
+      rawData = sheetData.raw;
+    } else {
+      console.log('⚠️  JSON 데이터 형식이 예상과 다릅니다.');
       return [];
+    }
+    
+    // lib/backDataReader.ts의 parseMonthlyData 로직 재사용
+    const { parseMonthlyData } = require("@/lib/backDataReader");
+    
+    // parseMonthlyData는 내부 함수이므로 직접 호출할 수 없음
+    // 대신 readMonthlyTargetSheet를 통해 간접 호출하거나
+    // 파싱 로직을 직접 구현
+    
+    // 직접 파싱 로직 구현 (lib/backDataReader.ts의 parseMonthlyData와 동일)
+    return parseMonthlyDataFromRaw(rawData);
+    
+  } catch (error: any) {
+    console.error('월별 데이터 파싱 실패:', error);
+    console.error('에러 스택:', error.stack);
+    return [];
+  }
+}
+
+// lib/backDataReader.ts의 parseMonthlyData 로직 재사용
+function parseMonthlyDataFromRaw(rawData: any[][]): any[] {
+  try {
+    if (rawData.length === 0) {
+      return [];
+    }
+    
+    const monthRow = rawData[0] as any[];
+    const targetRow = rawData[1] as any[];
+    const salesRow = rawData[2] as any[];
+    const lastYearRow = (rawData[4] || rawData[3]) as any[];
+    
+    if (!monthRow || !targetRow || !salesRow) {
+      console.log('⚠️  필수 데이터 행을 찾을 수 없습니다.');
+      return [];
+    }
+    
+    const monthlyData: any[] = [];
+    
+    // 숫자 파싱 헬퍼
+    const parseNumericCell = (cell: any): number => {
+      if (cell == null || cell === '') return 0;
+      if (typeof cell === 'number') return cell;
+      const str = String(cell).replace(/[^0-9.-]/g, '');
+      return parseFloat(str) || 0;
     };
     
-    // 임시로 빈 배열 반환, 나중에 실제 파싱 로직 추가
-    return [];
-  } catch (error) {
-    console.error('월별 데이터 파싱 실패:', error);
+    for (let col = 1; col < monthRow.length; col++) {
+      const monthCell = monthRow[col];
+      if (!monthCell || String(monthCell).trim() === '') continue;
+      
+      const monthStr = String(monthCell).trim();
+      const numMatch = monthStr.match(/(\d{1,2})\s*월?/);
+      let monthNumber = numMatch ? parseInt(numMatch[1]) : 0;
+      
+      if (monthNumber < 1 || monthNumber > 12) continue;
+      
+      const month = `${monthNumber}월`;
+      const 목표 = parseNumericCell(targetRow[col]);
+      const 매출 = parseNumericCell(salesRow[col]);
+      const 작년실적 = lastYearRow ? parseNumericCell(lastYearRow[col]) : 0;
+      const 신장율 = 작년실적 > 0 ? Math.round(((매출 - 작년실적) / 작년실적) * 100) : 0;
+      
+      monthlyData.push({
+        month,
+        매출: Math.round(매출),
+        목표: Math.round(목표),
+        작년실적: Math.round(작년실적),
+        신장율
+      });
+    }
+    
+    // 월 순서대로 정렬
+    monthlyData.sort((a, b) => {
+      const aNum = parseInt(a.month.replace('월', ''));
+      const bNum = parseInt(b.month.replace('월', ''));
+      return aNum - bNum;
+    });
+    
+    // 누락된 월 채우기
+    const completeData: any[] = [];
+    for (let i = 1; i <= 12; i++) {
+      const monthName = `${i}월`;
+      const existingData = monthlyData.find(item => item.month === monthName);
+      completeData.push(existingData || {
+        month: monthName,
+        매출: 0,
+        목표: 0,
+        작년실적: 0,
+        신장율: 0
+      });
+    }
+    
+    console.log(`✅ JSON에서 ${completeData.length}개월 데이터 파싱 완료`);
+    return completeData;
+    
+  } catch (error: any) {
+    console.error('월별 데이터 파싱 오류:', error);
     return [];
   }
 }
