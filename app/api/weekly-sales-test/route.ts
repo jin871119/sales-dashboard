@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// 동적 렌더링 강제 (빌드 타임에 실행되지 않도록)
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     console.log('=== API 테스트 시작 ===');

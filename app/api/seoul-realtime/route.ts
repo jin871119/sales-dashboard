@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+// 동적 렌더링 강제 (request.url 사용)
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // 서울시 실시간 도시데이터 API
 const API_KEY = process.env.NEXT_PUBLIC_SEOUL_RTD_API_KEY || 'sample_key';
 const BASE_URL = process.env.NEXT_PUBLIC_SEOUL_RTD_BASE_URL || 'http://openapi.seoul.go.kr:8088';
