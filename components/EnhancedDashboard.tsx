@@ -61,6 +61,23 @@ export default function EnhancedDashboard() {
         
         const result = await response.json();
         console.log("✅ 대시보드 데이터 로딩 완료:", result);
+        console.log("📊 KPI 데이터 상세:", {
+          salesTarget: result.kpis?.salesTarget,
+          periodPerformance: result.kpis?.periodPerformance,
+          lastYearPeriod: result.kpis?.lastYearPeriod,
+          periodGrowthRate: result.kpis?.periodGrowthRate,
+          forecast: result.kpis?.forecast,
+          forecastAchievementRate: result.kpis?.forecastAchievementRate,
+        });
+        console.log("📊 summarySheet 데이터:", {
+          hasSummarySheet: !!result.summarySheet,
+          salesTarget: result.summarySheet?.salesTarget?.[0]?.value,
+          forecast: result.summarySheet?.forecast?.[0]?.value,
+          periodPerformance: result.summarySheet?.periodPerformance?.[0]?.value,
+          lastYearPeriod: result.summarySheet?.lastYearPeriod?.[0]?.value,
+          periodGrowthRate: result.summarySheet?.periodGrowthRate?.[0]?.value,
+          forecastAchievementRate: result.summarySheet?.forecastAchievementRate?.[0]?.value,
+        });
         
         // 데이터 검증
         if (!result || !result.kpis) {
@@ -238,11 +255,11 @@ export default function EnhancedDashboard() {
         {activeTab === "overview" && (
           <div className="space-y-8">
             {/* KPI 카드 그리드 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
               <MetricCard
                 title="매출목표"
                 value={data.kpis.salesTarget.value}
-                subtitle="H7 (목표)"
+                subtitle="H7"
                 icon={<Target className="w-6 h-6" />}
                 color="blue"
                 trend={{
@@ -251,9 +268,42 @@ export default function EnhancedDashboard() {
                 }}
               />
               <MetricCard
+                title="실적"
+                value={data.kpis.periodPerformance?.value || "₩0"}
+                subtitle="Q7"
+                icon={<TrendingUp className="w-6 h-6" />}
+                color="green"
+                trend={{
+                  value: data.kpis.periodPerformance?.change || "실적",
+                  isPositive: data.kpis.periodPerformance?.trend === "up"
+                }}
+              />
+              <MetricCard
+                title="전년실적"
+                value={data.kpis.lastYearPeriod?.value || "₩0"}
+                subtitle="R7"
+                icon={<Calendar className="w-6 h-6" />}
+                color="purple"
+                trend={{
+                  value: data.kpis.lastYearPeriod?.change || "전년실적",
+                  isPositive: true
+                }}
+              />
+              <MetricCard
+                title="전년비"
+                value={data.kpis.periodGrowthRate?.value || "0%"}
+                subtitle="S7"
+                icon={<Activity className="w-6 h-6" />}
+                color="orange"
+                trend={{
+                  value: data.kpis.periodGrowthRate?.change || "전년비",
+                  isPositive: data.kpis.periodGrowthRate?.trend === "up"
+                }}
+              />
+              <MetricCard
                 title="예상마감"
                 value={data.kpis.forecast.value}
-                subtitle="I7 (예상마감달성율)"
+                subtitle="I7"
                 icon={<TrendingUp className="w-6 h-6" />}
                 color="green"
                 trend={{
@@ -262,25 +312,14 @@ export default function EnhancedDashboard() {
                 }}
               />
               <MetricCard
-                title="전년실적"
-                value={data.kpis.lastYear.value}
-                subtitle="K7 (작년)"
-                icon={<Calendar className="w-6 h-6" />}
-                color="purple"
-                trend={{
-                  value: data.kpis.lastYear.change,
-                  isPositive: data.kpis.lastYear.trend === "up"
-                }}
-              />
-              <MetricCard
-                title="신장율"
-                value={data.kpis.growthRate.value}
-                subtitle="전년 대비 성장률"
+                title="예상달성율"
+                value={data.kpis.forecastAchievementRate?.value || "0%"}
+                subtitle="J7"
                 icon={<Activity className="w-6 h-6" />}
                 color="orange"
                 trend={{
-                  value: data.kpis.growthRate.change,
-                  isPositive: data.kpis.growthRate.trend === "up"
+                  value: data.kpis.forecastAchievementRate?.change || "예상달성율",
+                  isPositive: data.kpis.forecastAchievementRate?.trend === "up"
                 }}
               />
             </div>

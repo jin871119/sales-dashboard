@@ -9,7 +9,8 @@ interface SummaryTableProps {
 }
 
 export default function SummaryTable({ data, weeklyMeetingData }: SummaryTableProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>([]); // 기본값: 모두 접힌 상태
+  // 기본값: 상권별, TEAM별, 유통별은 펼쳐진 상태
+  const [expandedSections, setExpandedSections] = useState<string[]>(['area', 'team', 'channel']);
   const [aiInsights, setAiInsights] = useState<{ [key: string]: boolean }>({});
 
   const toggleSection = (section: string) => {
@@ -140,7 +141,17 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
   };
 
   const renderSection = (title: string, sectionKey: string, items: any[]) => {
-    if (!items || items.length === 0) return null;
+    // 데이터가 없어도 섹션은 표시 (데이터 없음 메시지)
+    if (!items || items.length === 0) {
+      return (
+        <div className="mb-6 bg-white rounded-xl shadow-xl overflow-hidden border-2 border-gray-200">
+          <div className="w-full px-8 py-5 bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-between">
+            <span className="text-white font-extrabold text-xl">{title}</span>
+            <span className="text-white/80 text-sm">데이터 없음</span>
+          </div>
+        </div>
+      );
+    }
 
     const isExpanded = expandedSections.includes(sectionKey);
     const showAiInsight = aiInsights[sectionKey];
@@ -206,29 +217,23 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
                   <th className="px-4 py-3 text-left text-xs font-extrabold text-gray-900 uppercase tracking-wider sticky left-0 bg-gray-100 z-10">
                     구분
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-extrabold text-gray-900 uppercase tracking-wider">
-                    목표<br/>(억원)
+                  <th className="px-3 py-3 text-right text-xs font-extrabold text-orange-900 uppercase tracking-wider bg-orange-50">
+                    11월<br/>매출목표<br/>(억원)
                   </th>
                   <th className="px-3 py-3 text-right text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
-                    올해<br/>기간실적
+                    Actual<br/>MTD<br/>(억원)
                   </th>
                   <th className="px-3 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider bg-blue-50">
-                    작년<br/>기간실적
+                    LY<br/>Actual<br/>(억원)
                   </th>
                   <th className="px-3 py-3 text-center text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
-                    진도율
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
-                    전년비
+                    전년비<br/>(%)
                   </th>
                   <th className="px-3 py-3 text-right text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
-                    예상마감<br/>(억원)
+                    Sales<br/>FCST<br/>(억원)
                   </th>
                   <th className="px-3 py-3 text-center text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
-                    예상<br/>달성률
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
-                    예상<br/>전년비
+                    예상<br/>마감율<br/>(%)
                   </th>
                 </tr>
               </thead>
@@ -236,17 +241,24 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
                 {displayItems.map((item, index) => {
                   const isTotal = item.name?.includes('TTL') || item.name?.includes('SUM') || item.name?.includes('합계');
                   
-                  // 진도율 = (올해 기간실적 / 목표) × 100
-                  const progressRate = item.target > 0 ? Math.round((item.periodPerformance / item.target) * 100) : 0;
+                  // 11월 매출목표 (target은 연간이지만, 11월 목표로 사용)
+                  // 실제로는 item.novemberTarget이 있을 수도 있지만, 일단 target 사용
+                  const novemberTarget = item.novemberTarget || item.target || 0;
                   
-                  // 전년비 (기간실적) = item.periodGrowthRate (이미 계산됨)
-                  const periodGrowth = item.periodGrowthRate || 0;
+                  // Actual MTD (11월 현재까지 실적)
+                  const actualMTD = item.actualMTD || item.periodPerformance || 0;
                   
-                  // 예상달성률 = (예상마감 / 목표) × 100
-                  const forecastAchievement = item.target > 0 ? Math.round((item.forecast / item.target) * 100) : 0;
+                  // LY Actual (작년 11월 실적)
+                  const lyActual = item.lyActual || item.lastYearPeriod || item.lastYear || 0;
                   
-                  // 예상전년비 = item.forecastGrowthRate (이미 계산됨)
-                  const forecastGrowth = item.forecastGrowthRate || 0;
+                  // 전년비 = ((Actual MTD - LY Actual) / LY Actual) × 100
+                  const growthRate = lyActual > 0 ? Math.round(((actualMTD - lyActual) / lyActual) * 100) : 0;
+                  
+                  // Sales FCST (예상마감)
+                  const salesFCST = item.forecast || item.salesFCST || 0;
+                  
+                  // 예상마감율 = (Sales FCST / 11월 매출목표) × 100
+                  const forecastRate = novemberTarget > 0 ? Math.round((salesFCST / novemberTarget) * 100) : 0;
 
                   return (
                     <tr 
@@ -258,36 +270,26 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
                       <td className={`px-4 py-3 whitespace-nowrap sticky left-0 bg-white ${isTotal ? 'text-sm font-bold text-gray-900 bg-blue-50' : 'text-sm text-gray-800'}`}>
                         {isTotal ? '📊 ' : ''}{item.name}
                       </td>
-                      <td className={`px-3 py-3 whitespace-nowrap text-right ${isTotal ? 'text-sm font-bold text-green-700' : 'text-sm text-gray-700'}`}>
-                        {formatBillion(item.target)}
+                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-orange-50 ${isTotal ? 'text-sm font-bold text-orange-800' : 'text-sm text-gray-700'}`}>
+                        {formatBillion(novemberTarget)}
                       </td>
                       <td className={`px-3 py-3 whitespace-nowrap text-right bg-blue-50 ${isTotal ? 'text-sm font-bold text-blue-800' : 'text-sm font-semibold text-blue-700'}`}>
-                        {formatBillion(item.periodPerformance)}
+                        {formatBillion(actualMTD)}
                       </td>
                       <td className={`px-3 py-3 whitespace-nowrap text-right bg-blue-50 ${isTotal ? 'text-sm font-bold text-gray-700' : 'text-sm text-gray-600'}`}>
-                        {formatBillion(item.lastYearPeriod)}
+                        {formatBillion(lyActual)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center bg-blue-50">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${getAchievementColor(progressRate)}`}>
-                          {formatPercent(progressRate)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-center bg-blue-50">
-                        <span className={`text-sm font-bold ${getGrowthColor(periodGrowth)}`}>
-                          {periodGrowth >= 0 ? '+' : ''}{formatPercent(periodGrowth)}
+                        <span className={`text-sm font-bold ${getGrowthColor(growthRate)}`}>
+                          {growthRate >= 0 ? '+' : ''}{formatPercent(growthRate)}
                         </span>
                       </td>
                       <td className={`px-3 py-3 whitespace-nowrap text-right bg-purple-50 ${isTotal ? 'text-sm font-bold text-purple-800' : 'text-sm font-semibold text-purple-700'}`}>
-                        {formatBillion(item.forecast)}
+                        {formatBillion(salesFCST)}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center bg-purple-50">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${getAchievementColor(forecastAchievement)}`}>
-                          {formatPercent(forecastAchievement)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-center bg-purple-50">
-                        <span className={`text-sm font-bold ${getGrowthColor(forecastGrowth)}`}>
-                          {forecastGrowth >= 0 ? '+' : ''}{formatPercent(forecastGrowth)}
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${getAchievementColor(forecastRate)}`}>
+                          {formatPercent(forecastRate)}
                         </span>
                       </td>
                     </tr>

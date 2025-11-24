@@ -162,3 +162,4 @@ vercel --token [YOUR_TOKEN] --prod --yes
 
 **파일 탐색기에서 `deploy-fix-korean.bat` 더블클릭**
 
+

@@ -48,3 +48,5 @@ convert-*.js
 *.bat
 check-*.js
 analyze-*.js
+
+.vercel

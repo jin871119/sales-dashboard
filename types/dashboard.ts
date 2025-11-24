@@ -6,9 +6,13 @@ export interface KPIData {
 
 export interface KPIs {
   salesTarget: KPIData;   // 매출목표 (H7)
+  periodPerformance?: KPIData; // 실적 (Q7)
+  lastYearPeriod?: KPIData;     // 전년실적 (R7)
+  periodGrowthRate?: KPIData;  // 전년비 (S7)
   forecast: KPIData;       // 예상마감 (I7)
-  lastYear: KPIData;       // 전년실적 (K7)
-  growthRate: KPIData;     // 신장율
+  forecastAchievementRate?: KPIData; // 예상달성율 (J7)
+  lastYear?: KPIData;       // 전년실적 (K7) - 레거시
+  growthRate?: KPIData;     // 신장율 - 레거시
 }
 
 export interface MonthlySales {

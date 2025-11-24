@@ -1,195 +1,78 @@
 import { NextResponse } from "next/server";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import * as XLSX from "xlsx";
+import { readSummaryFromRaw } from "@/lib/summaryReader";
 
 export const dynamic = 'force-dynamic';
 
-// 엑셀 파일에서 데이터를 읽어옵니다
 export async function GET() {
   try {
     const rootDir = process.cwd();
     
-    // 1. JSON 파일 먼저 확인 (Vercel 배포용 - backdata.xlsx만)
+    // 1. backdata JSON 필수 확인
     const backdataJsonPath = join(rootDir, 'public', 'backdata.json');
-    let hasJsonFile = existsSync(backdataJsonPath);
-    const endingFocastPath = join(rootDir, "ending focast.xlsx");
-    const backdataPath = join(rootDir, "backdata.xlsx");
-    
-    // ending focast.xlsx는 JSON 우선, 없으면 엑셀 파일 읽기
-    let monthlyData: any[] | undefined = undefined;
-    let weeklyData: any[] | undefined = undefined;
-    let storeByArea: any = {};
-    
-    // ending focast JSON 파일 확인 (프로덕션 환경용)
+    if (!existsSync(backdataJsonPath)) {
+      console.log('⚠️  backdata.json 파일을 찾을 수 없습니다.');
+      return NextResponse.json({
+        ...getDefaultData(),
+        _notice: "public/backdata.json 파일이 없습니다. 'node prepare-deploy.js'를 실행한 후 다시 시도해주세요."
+      });
+    }
+
+    const backdataJson = JSON.parse(readFileSync(backdataJsonPath, 'utf8'));
+    const monthlyData = parseMonthlyFromJson(backdataJson);
+    const weeklyData = parseWeeklyFromJson(backdataJson);
+    const storeByArea = parseStoreByAreaFromJson(backdataJson);
+
+    // 2. ending focast JSON 필수 확인
     const endingFocastJsonPath = join(rootDir, 'public', 'ending-focast.json');
-    const hasEndingFocastJson = existsSync(endingFocastJsonPath);
-    
-    // backdata.xlsx는 JSON 파일이 있으면 JSON에서 읽기, 없으면 엑셀 파일 읽기
-    if (hasJsonFile) {
-      console.log('📊 JSON 파일 발견, backdata.xlsx는 JSON에서 읽기:', backdataJsonPath);
-      try {
-        const jsonData = JSON.parse(readFileSync(backdataJsonPath, 'utf8'));
-        
-        // JSON 데이터에서 필요한 정보 추출
-        monthlyData = parseMonthlyFromJson(jsonData);
-        weeklyData = parseWeeklyFromJson(jsonData);
-        storeByArea = parseStoreByAreaFromJson(jsonData);
-        
-        console.log('✅ JSON에서 backdata.xlsx 데이터 로드 완료');
-      } catch (jsonError: any) {
-        console.log('⚠️  JSON 파일 파싱 실패, 엑셀 파일 사용:', jsonError.message);
-        // JSON 파싱 실패 시 엑셀 파일로 폴백
-        hasJsonFile = false;
-      }
-    }
-    
-    // 2. ending focast 파일 확인 (JSON 우선, 없으면 엑셀)
-    if (!hasEndingFocastJson && !existsSync(endingFocastPath)) {
-      console.log('⚠️  ending focast 파일을 찾을 수 없습니다 (JSON 및 엑셀 모두 없음).');
-      const defaultData = getDefaultData();
+    if (!existsSync(endingFocastJsonPath)) {
+      console.log('⚠️  ending-focast.json 파일을 찾을 수 없습니다.');
       return NextResponse.json({
-        ...defaultData,
-        summary: {
-          totalRows: 3541,
-          lastUpdated: new Date().toLocaleString('ko-KR'),
-          dataRange: "샘플 데이터 (ending focast 파일 없음)"
-        },
-        _notice: "ending focast 파일을 찾을 수 없습니다. JSON 또는 엑셀 파일이 필요합니다."
+        ...getDefaultData(),
+        _notice: "public/ending-focast.json 파일이 없습니다. 'node convert-ending-focast.js' 또는 'node prepare-deploy.js'를 실행한 후 다시 시도해주세요."
       });
     }
-    
-    // 3. backdata.xlsx는 JSON 파일이 없으면 엑셀 파일에서 읽기
-    if (!hasJsonFile && !existsSync(backdataPath)) {
-      console.log('⚠️  backdata.xlsx 파일 및 JSON 파일을 찾을 수 없습니다.');
-      // backdata 없어도 ending focast.xlsx만으로 진행
+
+    const endingJson = JSON.parse(readFileSync(endingFocastJsonPath, 'utf8'));
+    const sheetName = getPrimarySheetName(endingJson);
+    const primarySheet = endingJson.data?.[sheetName];
+
+    if (!primarySheet || !primarySheet.raw) {
+      throw new Error(`JSON 데이터에서 "${sheetName}" 시트를 찾을 수 없습니다.`);
     }
-    
-    // 4. ending focast 및 backdata 읽기 시도
-    try {
-      const { readExcelFile } = await import("@/lib/excelReader");
-      const { readSummarySheet } = await import("@/lib/summaryReader");
-      const { readMonthlyTargetSheet, readWeeklySalesSheet } = await import("@/lib/backDataReader");
-      const { readNovemberPerformance, readStoreArea, groupPerformanceByArea } = await import("@/lib/storePerformanceReader");
-      
-      let excelData: any;
-      let sheetName: string;
-      let rawData: any[];
-      
-      // ending focast 데이터 읽기 (JSON 우선)
-      if (hasEndingFocastJson) {
-        console.log('📊 ending focast JSON 파일 읽는 중:', endingFocastJsonPath);
-        const jsonData = JSON.parse(readFileSync(endingFocastJsonPath, 'utf8'));
-        
-        // JSON 구조에서 첫 번째 시트 데이터 추출
-        if (jsonData.data && Object.keys(jsonData.data).length > 0) {
-          sheetName = Object.keys(jsonData.data)[0];
-          rawData = jsonData.data[sheetName].raw || jsonData.data[sheetName];
-          console.log(`✅ JSON에서 ${sheetName} 시트 로드 (${rawData.length}행)`);
-        } else {
-          throw new Error('JSON 파일 형식이 올바르지 않습니다.');
-        }
-      } else {
-        console.log('📊 ending focast.xlsx 엑셀 파일 읽는 중...');
-        excelData = readExcelFile("ending focast.xlsx");
-        sheetName = Object.keys(excelData)[0];
-        rawData = excelData[sheetName];
-        console.log(`✅ 엑셀에서 ${sheetName} 시트 로드`);
-      }
-      
-      console.log('✅ ending focast.xlsx 데이터 로드 성공:', {
-        sheetName,
-        rowCount: rawData.length,
-        columns: rawData.length > 0 ? Object.keys(rawData[0]) : []
+
+    const worksheet = XLSX.utils.aoa_to_sheet(primarySheet.raw);
+    const rawData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+    console.log('✅ ending-focast.json 데이터 로드 성공:', {
+      sheetName,
+      rowCount: rawData.length,
+      columns: rawData.length > 0 ? Object.keys(rawData[0]) : []
+    });
+
+    // 요약 시트 데이터 파싱
+    let summaryData = null;
+    const summarySheetName = getSummarySheetName(endingJson);
+    if (summarySheetName && endingJson.data?.[summarySheetName]?.raw) {
+      summaryData = readSummaryFromRaw(endingJson.data[summarySheetName].raw, summarySheetName);
+      console.log(`✅ "${summarySheetName}" 요약 시트 JSON에서 로드 완료`);
+      console.log('📊 summaryData 추출된 값:', {
+        salesTarget: summaryData?.salesTarget?.[0]?.value,
+        forecast: summaryData?.forecast?.[0]?.value,
+        periodPerformance: summaryData?.periodPerformance?.[0]?.value,
+        lastYearPeriod: summaryData?.lastYearPeriod?.[0]?.value,
+        periodGrowthRate: summaryData?.periodGrowthRate?.[0]?.value,
+        forecastAchievementRate: summaryData?.forecastAchievementRate?.[0]?.value,
       });
-      
-      // "요약" 시트 읽기 (상권별, 팀별, 유통별 데이터 포함)
-      let summaryData = null;
-      try {
-        summaryData = readSummarySheet("ending focast.xlsx");
-        console.log('✅ "요약" 시트 로드 성공');
-        
-        // 상세 로그 출력
-        if (summaryData) {
-          console.log('📊 요약 시트 데이터 상세:');
-          if (summaryData.byArea && summaryData.byArea.length > 0) {
-            console.log(`   ✅ 상권별: ${summaryData.byArea.length}건`);
-            summaryData.byArea.slice(0, 3).forEach((item: any) => {
-              console.log(`      - ${item.name}: 목표 ${item.target?.toLocaleString() || 0}, 예상 ${item.forecast?.toLocaleString() || 0}`);
-            });
-          } else {
-            console.log('   ⚠️  상권별 데이터 없음');
-          }
-          
-          if (summaryData.byTeam && summaryData.byTeam.length > 0) {
-            console.log(`   ✅ 팀별: ${summaryData.byTeam.length}건`);
-            summaryData.byTeam.slice(0, 3).forEach((item: any) => {
-              console.log(`      - ${item.name}: 목표 ${item.target?.toLocaleString() || 0}, 예상 ${item.forecast?.toLocaleString() || 0}`);
-            });
-          } else {
-            console.log('   ⚠️  팀별 데이터 없음');
-          }
-          
-          if (summaryData.byChannel && summaryData.byChannel.length > 0) {
-            console.log(`   ✅ 유통별: ${summaryData.byChannel.length}건`);
-            summaryData.byChannel.slice(0, 3).forEach((item: any) => {
-              console.log(`      - ${item.name}: 목표 ${item.target?.toLocaleString() || 0}, 예상 ${item.forecast?.toLocaleString() || 0}`);
-            });
-          } else {
-            console.log('   ⚠️  유통별 데이터 없음');
-          }
-        }
-      } catch (summaryError) {
-        console.log('⚠️  "요약" 시트 로드 실패:', summaryError);
-      }
-      
-      // backdata.xlsx의 "월별목표" 시트 읽기 (JSON 파일이 없으면)
-      if (!hasJsonFile) {
-        try {
-          monthlyData = readMonthlyTargetSheet("backdata.xlsx");
-          console.log('✅ backdata.xlsx "월별목표" 시트 로드 성공:', monthlyData?.length + '개월');
-        } catch (monthlyError) {
-          console.log('⚠️  "월별목표" 시트 로드 실패:', monthlyError);
-        }
-        
-        // backdata.xlsx의 "주차별매출" 시트 읽기
-        try {
-          weeklyData = readWeeklySalesSheet("backdata.xlsx");
-          console.log('✅ backdata.xlsx "주차별매출" 시트 로드 성공:', weeklyData?.length + '주차');
-        } catch (weeklyError) {
-          console.log('⚠️  "주차별매출" 시트 로드 실패:', weeklyError);
-        }
-        
-        // backdata.xlsx의 "11월실적" 및 "상권구분" 시트 읽기
-        try {
-          const performances = readNovemberPerformance("backdata.xlsx");
-          const storeAreaMap = readStoreArea("backdata.xlsx");
-          storeByArea = groupPerformanceByArea(performances, storeAreaMap);
-          console.log('✅ 상권별 매장 데이터 로드 성공:', Object.keys(storeByArea).length + '개 상권');
-        } catch (storeError) {
-          console.log('⚠️  상권별 매장 데이터 로드 실패:', storeError);
-        }
-      }
-      
-      const data = convertExcelToDashboard(rawData, sheetName, summaryData, monthlyData, weeklyData, storeByArea);
-      return NextResponse.json(data);
-      
-    } catch (xlsxError: any) {
-      // 엑셀 파일 읽기 실패 (예상치 못한 오류)
-      console.log('⚠️  엑셀 파일 로드 실패:', xlsxError.message);
-      console.log('💡 기본 데이터를 표시합니다.');
-      
-      // 기본 데이터 반환
-      const defaultData = getDefaultData();
-      return NextResponse.json({
-        ...defaultData,
-        summary: {
-          totalRows: 0,
-          lastUpdated: new Date().toLocaleString('ko-KR'),
-          dataRange: "오류 발생 - 샘플 데이터"
-        },
-        _notice: "엑셀 파일을 읽는 중 오류가 발생했습니다. 샘플 데이터를 표시합니다."
-      });
+    } else {
+      console.log('⚠️  요약 시트를 JSON에서 찾을 수 없습니다.');
+      console.log('사용 가능한 시트:', Object.keys(endingJson.data || {}));
     }
+
+    const data = convertExcelToDashboard(rawData, sheetName, summaryData, monthlyData, weeklyData, storeByArea);
+    return NextResponse.json(data);
     
   } catch (error) {
     console.error('데이터 로드 오류:', error);
@@ -203,6 +86,27 @@ export async function GET() {
       }
     });
   }
+}
+
+function getPrimarySheetName(endingJson: any): string {
+  if (endingJson?.sheetNames && endingJson.sheetNames.length > 0) {
+    return endingJson.sheetNames[0];
+  }
+  if (endingJson?.data && Object.keys(endingJson.data).length > 0) {
+    return Object.keys(endingJson.data)[0];
+  }
+  return '요약';
+}
+
+function getSummarySheetName(endingJson: any): string | null {
+  if (!endingJson?.data) return null;
+  const summarySheetNames = ['요약', 'Summary', 'summary', '總結'];
+  const found = Object.keys(endingJson.data).find(name =>
+    summarySheetNames.includes(name) ||
+    name.includes('요약') ||
+    name.includes('Summary')
+  );
+  return found || null;
 }
 
 /**
@@ -802,36 +706,77 @@ function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?
   }
   console.log('');
 
-  // 요약 시트의 H7, I7, K7 값 추출
-  const salesTarget = summaryData?.salesTarget?.[0]?.value || 0;
-  const forecast = summaryData?.forecast?.[0]?.value || 0;
-  const lastYear = summaryData?.lastYear?.[0]?.value || 0;
+  // 요약 시트의 H7, I7, J7, K7, Q7, R7, S7 값 추출
+  // summaryData가 없거나 값이 없을 경우를 대비한 안전한 추출
+  const salesTarget = (summaryData?.salesTarget?.[0]?.value ?? 0) as number; // H7
+  const forecast = (summaryData?.forecast?.[0]?.value ?? 0) as number; // I7
+  const forecastAchievementRateValue = (summaryData?.forecastAchievementRate?.[0]?.value ?? 0) as number; // J7
+  const lastYear = (summaryData?.lastYear?.[0]?.value ?? 0) as number; // K7
+  const periodPerformance = (summaryData?.periodPerformance?.[0]?.value ?? 0) as number; // Q7
+  const lastYearPeriod = (summaryData?.lastYearPeriod?.[0]?.value ?? 0) as number; // R7
+  const periodGrowthRate = (summaryData?.periodGrowthRate?.[0]?.value ?? 0) as number; // S7
   
-  // 달성률 및 신장률 계산
-  const forecastAchievementRate = salesTarget > 0 ? ((forecast / salesTarget) * 100).toFixed(1) : '0.0';
-  const growthRate = lastYear > 0 ? (((forecast - lastYear) / lastYear) * 100).toFixed(1) : '0.0';
+  console.log('🔍 KPI 데이터 추출:', {
+    salesTarget,
+    forecast,
+    forecastAchievementRateValue,
+    periodPerformance,
+    lastYearPeriod,
+    periodGrowthRate,
+    summaryDataExists: !!summaryData,
+    summaryDataKeys: summaryData ? Object.keys(summaryData) : [],
+  });
+  
+  // 계산된 값들 (데이터가 없을 경우 계산)
+  // forecastAchievementRateValue가 0보다 크면 사용, 아니면 계산
+  const calculatedForecastAchievementRate = forecastAchievementRateValue > 0 
+    ? forecastAchievementRateValue 
+    : (salesTarget > 0 ? ((forecast / salesTarget) * 100) : 0);
+  
+  // periodGrowthRate가 0보다 크면 사용, 아니면 계산
+  const calculatedGrowthRate = periodGrowthRate !== 0 && periodGrowthRate !== null && periodGrowthRate !== undefined
+    ? periodGrowthRate 
+    : (lastYearPeriod > 0 ? (((periodPerformance - lastYearPeriod) / lastYearPeriod) * 100) : 0);
+  
+  console.log('📊 계산된 KPI 값:', {
+    calculatedForecastAchievementRate,
+    calculatedGrowthRate,
+    salesTargetFormatted: formatCurrency(salesTarget),
+    forecastFormatted: formatCurrency(forecast),
+    periodPerformanceFormatted: formatCurrency(periodPerformance),
+  });
   
   const data = {
     kpis: {
       salesTarget: {
         value: formatCurrency(salesTarget),
-        change: forecastAchievementRate + '% 달성 예상',
-        trend: parseFloat(forecastAchievementRate) >= 100 ? "up" as const : "down" as const,
+        change: calculatedForecastAchievementRate.toFixed(1) + '% 달성 예상',
+        trend: calculatedForecastAchievementRate >= 100 ? "up" as const : "down" as const,
+      },
+      periodPerformance: {
+        value: formatCurrency(periodPerformance),
+        change: '실적 (Q7)',
+        trend: periodPerformance >= salesTarget ? "up" as const : "down" as const,
+      },
+      lastYearPeriod: {
+        value: formatCurrency(lastYearPeriod),
+        change: '전년실적 (R7)',
+        trend: "up" as const,
+      },
+      periodGrowthRate: {
+        value: calculatedGrowthRate.toFixed(1) + '%',
+        change: '전년비 (S7)',
+        trend: calculatedGrowthRate >= 0 ? "up" as const : "down" as const,
       },
       forecast: {
         value: formatCurrency(forecast),
-        change: forecastAchievementRate + '% 달성률',
-        trend: parseFloat(forecastAchievementRate) >= 100 ? "up" as const : "down" as const,
+        change: calculatedForecastAchievementRate.toFixed(1) + '% 달성률',
+        trend: calculatedForecastAchievementRate >= 100 ? "up" as const : "down" as const,
       },
-      lastYear: {
-        value: formatCurrency(lastYear),
-        change: growthRate + '% 신장',
-        trend: parseFloat(growthRate) >= 0 ? "up" as const : "down" as const,
-      },
-      growthRate: {
-        value: growthRate + '%',
-        change: '전년 대비',
-        trend: parseFloat(growthRate) >= 0 ? "up" as const : "down" as const,
+      forecastAchievementRate: {
+        value: calculatedForecastAchievementRate.toFixed(1) + '%',
+        change: '예상달성율 (J7)',
+        trend: calculatedForecastAchievementRate >= 100 ? "up" as const : "down" as const,
       },
     },
     monthlySales: monthlySales.length > 0 ? monthlySales : getDefaultData().monthlySales,

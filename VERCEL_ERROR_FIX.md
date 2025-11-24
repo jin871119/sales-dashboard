@@ -177,3 +177,4 @@ git init && git add . && git commit -m "Deploy" && vercel --prod --yes
 2. `git status` 실행 결과
 3. `vercel whoami` 실행 결과
 
+

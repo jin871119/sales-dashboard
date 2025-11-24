@@ -130,3 +130,4 @@ vercel --token YOUR_TOKEN --prod --yes
 1. **GitHub 연동** (가장 안정적) → `deploy-github.bat` 실행
 2. **토큰 배포** (빠름) → `deploy-token-only.bat` 실행
 
+

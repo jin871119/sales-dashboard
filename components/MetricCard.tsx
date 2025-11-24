@@ -39,14 +39,16 @@ export default function MetricCard({
   trend,
 }: MetricCardProps) {
   return (
-    <div className={`${bgColorClasses[color]} border border-gray-200 rounded-xl p-6 hover:shadow-xl transition-all duration-300`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className={`${colorClasses[color]} p-3 rounded-lg text-white shadow-lg`}>
-          {icon}
+    <div className={`${bgColorClasses[color]} border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className={`${colorClasses[color]} p-2 rounded-lg text-white shadow-md`}>
+          <div className="w-5 h-5">
+            {icon}
+          </div>
         </div>
         {trend && (
           <div
-            className={`text-sm font-bold px-3 py-1 rounded-full ${
+            className={`text-xs font-bold px-2 py-1 rounded-full ${
               trend.isPositive
                 ? "bg-green-100 text-green-700"
                 : "bg-red-100 text-red-700"
@@ -57,13 +59,13 @@ export default function MetricCard({
         )}
       </div>
       
-      <h3 className="text-gray-600 text-sm font-medium mb-1">{title}</h3>
-      <p className="text-3xl font-bold text-gray-900 mb-1">
+      <h3 className="text-gray-600 text-xs font-medium mb-1">{title}</h3>
+      <p className="text-2xl font-bold text-gray-900 mb-1">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </p>
       
       {subtitle && (
-        <p className="text-sm text-gray-500">{subtitle}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
       )}
     </div>
   );
