@@ -11,7 +11,9 @@
     "check-excel": "node scripts/check-excel.js",
     "analyze": "node analyze-excel.js",
     "analyze-summary": "node analyze-summary-sheet.js",
-    "analyze-backdata": "node analyze-backdata.js"
+    "analyze-backdata": "node analyze-backdata.js",
+    "prepare-deploy": "node prepare-deploy.js",
+    "deploy": "npm run prepare-deploy && vercel --prod"
   },
   "dependencies": {
     "clsx": "^2.1.0",

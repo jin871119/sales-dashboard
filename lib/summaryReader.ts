@@ -114,6 +114,7 @@ export function readSummarySheet(filename: string): SummaryData {
     }];
 
     // 상권별 데이터 추출 (상권 표에서)
+    console.log('\n📊 상권별/팀별/유통별 데이터 추출 시작...');
     result.byArea = extractAreaData(rawData);
     
     // TEAM별 데이터 추출 (TEAM 표에서)
@@ -121,6 +122,14 @@ export function readSummarySheet(filename: string): SummaryData {
     
     // 유통별 데이터 추출 (유통별 표에서)
     result.byChannel = extractChannelData(rawData);
+    
+    // 최종 결과 요약
+    console.log('\n📊 요약 시트 데이터 추출 완료:');
+    console.log(`   - 상권별: ${result.byArea?.length || 0}건`);
+    console.log(`   - 팀별: ${result.byTeam?.length || 0}건`);
+    console.log(`   - 유통별: ${result.byChannel?.length || 0}건`);
+    console.log(`   - 순수별: ${result.byPure?.length || 0}건`);
+    console.log(`   - 단체별: ${result.byGroup?.length || 0}건`);
 
     return result;
 

@@ -182,7 +182,15 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
     }
     
     // 2. 엑셀 파일 시도 (로컬 개발용)
-    console.log('📊 엑셀 파일 찾는 중...');
+    console.log('📊 JSON 파일 없음, 엑셀 파일 찾는 중...');
+    
+    // 프로덕션 환경에서는 엑셀 파일 접근 시도하지 않음
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      console.warn('⚠️  프로덕션 환경: JSON 파일이 필요합니다.');
+      console.warn('⚠️  prepare-deploy.js를 실행하여 JSON 파일을 생성하세요.');
+      throw new Error('프로덕션 환경에서는 JSON 파일이 필요합니다. public/weekly-sales-data.json 파일을 생성하세요.');
+    }
+    
     const files = fs.readdirSync(rootDir);
     const excelFile = files.find(f => 
       f.startsWith('mw_일주월별_판매') && 
@@ -194,7 +202,7 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
       console.error('프로젝트 루트:', rootDir);
       console.error('JSON 경로:', jsonPath);
       console.error('파일 목록:', files.filter(f => f.includes('일주월별')));
-      throw new Error('mw_일주월별_판매 엑셀 파일을 찾을 수 없습니다.');
+      throw new Error('mw_일주월별_판매 엑셀 파일을 찾을 수 없습니다. JSON 파일을 생성하거나 엑셀 파일을 프로젝트 루트에 배치하세요.');
     }
     
     const filePath = path.join(rootDir, excelFile);
@@ -203,7 +211,8 @@ export function readWeeklySalesExcel(): WeeklySalesRecord[] {
     // 파일 접근 확인
     try {
       fs.accessSync(filePath, fs.constants.R_OK);
-    } catch (e) {
+    } catch (e: any) {
+      console.error('파일 접근 오류:', e.message);
       throw new Error(`파일에 접근할 수 없습니다. 엑셀에서 파일이 열려있으면 닫아주세요: ${filePath}`);
     }
     
@@ -276,10 +285,14 @@ function parseWeeklySalesData(data: any[][]): WeeklySalesRecord[] {
     const filteredDates = tempDateData.filter(d => d.date >= '2025-11-01' && d.date <= '2025-11-30');
     
     console.log(`📅 필터링 전 날짜 수: ${tempDateData.length}`);
-    console.log(`📅 필터링 후 (11월 1일~) 날짜 수: ${filteredDates.length}`);
+    console.log(`📅 필터링 후 (11월 1일~30일) 날짜 수: ${filteredDates.length}`);
     if (filteredDates.length > 0) {
       console.log(`📅 첫 날짜: ${filteredDates[0].date}, 마지막 날짜: ${filteredDates[filteredDates.length - 1].date}`);
       console.log(`📅 모든 날짜:`, filteredDates.map(d => d.date).join(', '));
+      
+      // 23일 데이터 확인
+      const has23rd = filteredDates.some(d => d.date === '2025-11-23');
+      console.log(`✅ 2025-11-23 데이터 포함: ${has23rd ? 'YES ✓' : 'NO ✗'}`);
     }
     
     filteredDates.forEach(d => {

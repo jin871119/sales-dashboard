@@ -15,10 +15,14 @@ export async function GET() {
     const endingFocastPath = join(rootDir, "ending focast.xlsx");
     const backdataPath = join(rootDir, "backdata.xlsx");
     
-    // ending focast.xlsx는 항상 엑셀 파일로 읽기 (JSON 변환 없음)
+    // ending focast.xlsx는 JSON 우선, 없으면 엑셀 파일 읽기
     let monthlyData: any[] | undefined = undefined;
     let weeklyData: any[] | undefined = undefined;
     let storeByArea: any = {};
+    
+    // ending focast JSON 파일 확인 (프로덕션 환경용)
+    const endingFocastJsonPath = join(rootDir, 'public', 'ending-focast.json');
+    const hasEndingFocastJson = existsSync(endingFocastJsonPath);
     
     // backdata.xlsx는 JSON 파일이 있으면 JSON에서 읽기, 없으면 엑셀 파일 읽기
     if (hasJsonFile) {
@@ -39,18 +43,18 @@ export async function GET() {
       }
     }
     
-    // 2. ending focast.xlsx 항상 읽기 (엑셀 파일)
-    if (!existsSync(endingFocastPath)) {
-      console.log('⚠️  ending focast.xlsx 파일을 찾을 수 없습니다.');
+    // 2. ending focast 파일 확인 (JSON 우선, 없으면 엑셀)
+    if (!hasEndingFocastJson && !existsSync(endingFocastPath)) {
+      console.log('⚠️  ending focast 파일을 찾을 수 없습니다 (JSON 및 엑셀 모두 없음).');
       const defaultData = getDefaultData();
       return NextResponse.json({
         ...defaultData,
         summary: {
           totalRows: 3541,
           lastUpdated: new Date().toLocaleString('ko-KR'),
-          dataRange: "샘플 데이터 (ending focast.xlsx 없음)"
+          dataRange: "샘플 데이터 (ending focast 파일 없음)"
         },
-        _notice: "ending focast.xlsx 파일을 찾을 수 없습니다."
+        _notice: "ending focast 파일을 찾을 수 없습니다. JSON 또는 엑셀 파일이 필요합니다."
       });
     }
     
@@ -60,17 +64,37 @@ export async function GET() {
       // backdata 없어도 ending focast.xlsx만으로 진행
     }
     
-    // 4. ending focast.xlsx 및 backdata.xlsx 읽기 시도
+    // 4. ending focast 및 backdata 읽기 시도
     try {
       const { readExcelFile } = await import("@/lib/excelReader");
       const { readSummarySheet } = await import("@/lib/summaryReader");
       const { readMonthlyTargetSheet, readWeeklySalesSheet } = await import("@/lib/backDataReader");
       const { readNovemberPerformance, readStoreArea, groupPerformanceByArea } = await import("@/lib/storePerformanceReader");
       
-      // 메인 데이터 읽기 (ending focast.xlsx)
-      const excelData = readExcelFile("ending focast.xlsx");
-      const sheetName = Object.keys(excelData)[0];
-      const rawData = excelData[sheetName];
+      let excelData: any;
+      let sheetName: string;
+      let rawData: any[];
+      
+      // ending focast 데이터 읽기 (JSON 우선)
+      if (hasEndingFocastJson) {
+        console.log('📊 ending focast JSON 파일 읽는 중:', endingFocastJsonPath);
+        const jsonData = JSON.parse(readFileSync(endingFocastJsonPath, 'utf8'));
+        
+        // JSON 구조에서 첫 번째 시트 데이터 추출
+        if (jsonData.data && Object.keys(jsonData.data).length > 0) {
+          sheetName = Object.keys(jsonData.data)[0];
+          rawData = jsonData.data[sheetName].raw || jsonData.data[sheetName];
+          console.log(`✅ JSON에서 ${sheetName} 시트 로드 (${rawData.length}행)`);
+        } else {
+          throw new Error('JSON 파일 형식이 올바르지 않습니다.');
+        }
+      } else {
+        console.log('📊 ending focast.xlsx 엑셀 파일 읽는 중...');
+        excelData = readExcelFile("ending focast.xlsx");
+        sheetName = Object.keys(excelData)[0];
+        rawData = excelData[sheetName];
+        console.log(`✅ 엑셀에서 ${sheetName} 시트 로드`);
+      }
       
       console.log('✅ ending focast.xlsx 데이터 로드 성공:', {
         sheetName,
@@ -78,11 +102,42 @@ export async function GET() {
         columns: rawData.length > 0 ? Object.keys(rawData[0]) : []
       });
       
-      // "요약" 시트 읽기
+      // "요약" 시트 읽기 (상권별, 팀별, 유통별 데이터 포함)
       let summaryData = null;
       try {
         summaryData = readSummarySheet("ending focast.xlsx");
         console.log('✅ "요약" 시트 로드 성공');
+        
+        // 상세 로그 출력
+        if (summaryData) {
+          console.log('📊 요약 시트 데이터 상세:');
+          if (summaryData.byArea && summaryData.byArea.length > 0) {
+            console.log(`   ✅ 상권별: ${summaryData.byArea.length}건`);
+            summaryData.byArea.slice(0, 3).forEach((item: any) => {
+              console.log(`      - ${item.name}: 목표 ${item.target?.toLocaleString() || 0}, 예상 ${item.forecast?.toLocaleString() || 0}`);
+            });
+          } else {
+            console.log('   ⚠️  상권별 데이터 없음');
+          }
+          
+          if (summaryData.byTeam && summaryData.byTeam.length > 0) {
+            console.log(`   ✅ 팀별: ${summaryData.byTeam.length}건`);
+            summaryData.byTeam.slice(0, 3).forEach((item: any) => {
+              console.log(`      - ${item.name}: 목표 ${item.target?.toLocaleString() || 0}, 예상 ${item.forecast?.toLocaleString() || 0}`);
+            });
+          } else {
+            console.log('   ⚠️  팀별 데이터 없음');
+          }
+          
+          if (summaryData.byChannel && summaryData.byChannel.length > 0) {
+            console.log(`   ✅ 유통별: ${summaryData.byChannel.length}건`);
+            summaryData.byChannel.slice(0, 3).forEach((item: any) => {
+              console.log(`      - ${item.name}: 목표 ${item.target?.toLocaleString() || 0}, 예상 ${item.forecast?.toLocaleString() || 0}`);
+            });
+          } else {
+            console.log('   ⚠️  유통별 데이터 없음');
+          }
+        }
       } catch (summaryError) {
         console.log('⚠️  "요약" 시트 로드 실패:', summaryError);
       }
@@ -312,18 +367,260 @@ function parseMonthlyDataFromRaw(rawData: any[][]): any[] {
  */
 function parseWeeklyFromJson(jsonData: any): any[] {
   try {
-    const sheetName = Object.keys(jsonData.data || {}).find((name: string) => 
-      name.includes('주차') || name.includes('Weekly') || name.includes('Week')
-    );
+    // JSON 구조 확인: jsonData.data["주차별매출"] 또는 jsonData["주차별매출"]
+    let sheetData = null;
+    let sheetName = null;
     
-    if (!sheetName || !jsonData.data[sheetName]) {
+    // 먼저 jsonData.data 구조 확인
+    if (jsonData.data) {
+      sheetName = Object.keys(jsonData.data).find((name: string) => 
+        name.includes('주차') || name.includes('Weekly') || name.includes('Week')
+      );
+      if (sheetName) {
+        sheetData = jsonData.data[sheetName];
+      }
+    }
+    
+    // jsonData.data가 없으면 직접 확인
+    if (!sheetData) {
+      sheetName = Object.keys(jsonData).find((name: string) => 
+        name.includes('주차') || name.includes('Weekly') || name.includes('Week')
+      );
+      if (sheetName) {
+        sheetData = jsonData[sheetName];
+      }
+    }
+    
+    if (!sheetData) {
+      console.log('⚠️  JSON에서 "주차별매출" 시트를 찾을 수 없습니다.');
       return [];
     }
     
-    // 임시로 빈 배열 반환
-    return [];
-  } catch (error) {
+    console.log(`📊 JSON에서 "${sheetName}" 시트 발견`);
+    
+    // raw 데이터가 배열의 배열 형태인지 확인
+    let rawData: any[][] = [];
+    
+    if (Array.isArray(sheetData)) {
+      // 이미 배열 형태
+      if (sheetData.length > 0 && Array.isArray(sheetData[0])) {
+        rawData = sheetData as any[][];
+      } else {
+        // 객체 배열인 경우, 컬럼명으로 변환
+        const columns = Object.keys(sheetData[0] || {});
+        rawData = [columns]; // 헤더 행
+        sheetData.forEach((row: any) => {
+          rawData.push(columns.map(col => row[col]));
+        });
+      }
+    } else if (sheetData.raw && Array.isArray(sheetData.raw)) {
+      rawData = sheetData.raw;
+    } else {
+      console.log('⚠️  JSON 데이터 형식이 예상과 다릅니다.');
+      return [];
+    }
+    
+    // lib/backDataReader.ts의 parseWeeklyData 로직 재사용
+    return parseWeeklyDataFromRaw(rawData);
+    
+  } catch (error: any) {
     console.error('주차별 데이터 파싱 실패:', error);
+    console.error('에러 스택:', error.stack);
+    return [];
+  }
+}
+
+// lib/backDataReader.ts의 parseWeeklyData 로직 재사용
+function parseWeeklyDataFromRaw(rawData: any[][]): any[] {
+  try {
+    if (rawData.length === 0) {
+      return [];
+    }
+    
+    // 실제 구조:
+    // 1행(인덱스 0): [A1?, "1주", "2주", "3주", ..., "52주"]
+    // 2행(인덱스 1): ["금년", 금년값1, 금년값2, ...]
+    // 3행(인덱스 2): ["전년", 전년값1, 전년값2, ...]
+    const weekRow = rawData[0] as any[];   // 1행: 주차 정보
+    const thisYearRow = rawData[1] as any[];  // 2행: 금년
+    const lastYearRow = rawData[2] as any[];  // 3행: 전년
+    
+    if (!weekRow || !thisYearRow || !lastYearRow) {
+      console.log('⚠️  필수 데이터 행을 찾을 수 없습니다.');
+      return [];
+    }
+    
+    const weeklyData: any[] = [];
+    
+    // 숫자 파싱 헬퍼
+    const parseNumericCell = (cell: any): number => {
+      if (cell == null || cell === '') return 0;
+      if (typeof cell === 'number') return cell;
+      const str = String(cell).replace(/[^0-9.-]/g, '');
+      return parseFloat(str) || 0;
+    };
+    
+    // 47주 찾기: 모든 컬럼에서 "47"이 포함된 셀 찾기
+    console.log('\n🔍 47주 찾기: 40-55 컬럼 범위에서 "47" 포함 셀 검색...');
+    for (let col = 40; col < Math.min(weekRow.length, 55); col++) {
+      const cell = weekRow[col];
+      if (cell && String(cell).includes('47')) {
+        console.log(`   발견! 컬럼 ${col}: "${cell}" (타입: ${typeof cell})`);
+      }
+    }
+    console.log('');
+    
+    const weekNumberSet = new Set<number>(); // 중복 체크용
+    
+    // B열부터 시작 (인덱스 1부터)
+    // 주의: col <= 52 조건을 제거하고 weekRow.length까지 모두 확인
+    for (let col = 1; col < weekRow.length; col++) {
+      const weekCell = weekRow[col];
+      if (!weekCell || String(weekCell).trim() === '') {
+        // 47주 근처에서 빈 셀 로그 출력
+        if (col >= 40 && col <= 55) {
+          console.log(`   ⚠️  컬럼 ${col}: 빈 셀 또는 null`);
+        }
+        continue;
+      }
+      
+      const weekStr = String(weekCell).trim();
+      
+      // 주차 번호 추출 (1~52)
+      let weekNumber = 0;
+      
+      // 다양한 형식 지원: "1주", "1W", "W1", "W47", "Week 1", "47주", "47" 등
+      // W47, w47 형식도 처리
+      const patterns = [
+        /W(\d{1,2})/i,           // W47, w47
+        /(\d{1,2})\s*주/,        // 47주, 47 주
+        /(\d{1,2})\s*W/i,        // 47W, 47 W
+        /Week\s*(\d{1,2})/i,     // Week 47
+        /^(\d{1,2})$/            // 47 (숫자만)
+      ];
+      
+      for (const pattern of patterns) {
+        const match = weekStr.match(pattern);
+        if (match) {
+          weekNumber = parseInt(match[1]);
+          break;
+        }
+      }
+      
+      if (weekNumber < 1 || weekNumber > 52) {
+        // 47주 근처에서 주차 번호 추출 실패 로그 출력
+        if (col >= 40 && col <= 55) {
+          console.log(`   ⚠️  컬럼 ${col}: 주차 번호 추출 실패 (weekStr="${weekStr}", weekNumber=${weekNumber})`);
+        }
+        continue;
+      }
+      
+      // 중복 체크: 같은 주차 번호가 이미 추가되었는지 확인
+      if (weekNumberSet.has(weekNumber)) {
+        console.log(`   ⚠️  컬럼 ${col}: 주차 ${weekNumber}주가 이미 추가됨 (중복, 원본="${weekStr}")`);
+        continue;
+      }
+      weekNumberSet.add(weekNumber);
+      
+      const week = `${weekNumber}주`;
+      
+      // 금년 데이터 추출 (2행)
+      const 금년 = parseNumericCell(thisYearRow[col]);
+      
+      // 전년 데이터 추출 (3행)
+      const 전년 = parseNumericCell(lastYearRow[col]);
+      
+      // 신장율 계산
+      const 신장율 = 전년 > 0 ? Math.round(((금년 - 전년) / 전년) * 100) : 0;
+      
+      weeklyData.push({
+        week: week,
+        금년: Math.round(금년),
+        전년: Math.round(전년),
+        신장율: 신장율
+      });
+      
+      // 47주 발견 시 특별 로그
+      if (weekNumber === 47) {
+        console.log(`   🎯 47주 발견! 컬럼 ${col}, 원본="${weekStr}": 금년 ${Math.round(금년).toLocaleString()}, 전년 ${Math.round(전년).toLocaleString()}`);
+      }
+      
+      // 45-50주 로그 출력
+      if (weekNumber >= 45 && weekNumber <= 50) {
+        console.log(`   ✓ ${week} (컬럼 ${col}, 원본="${weekStr}"): 금년 ${Math.round(금년).toLocaleString()}, 전년 ${Math.round(전년).toLocaleString()}, 신장율 ${신장율}%`);
+      }
+    }
+    
+    // 47주차 특별 처리: AV열(인덱스 48) 3행(인덱스 2)에서 직접 읽기
+    // 주의: 47주차 25년 실적은 AV열 3행에 있음 (3행 = 인덱스 2)
+    const AV_COLUMN_INDEX = 47; // AV열 = 47번째 인덱스 (0-베이스, 컬럼 'AV')
+    const ROW_3_INDEX = 2; // 3행 = 인덱스 2
+    const existingWeekNumbers = new Set(weeklyData.map(w => parseInt(w.week.replace('주', ''))));
+    
+    // 3행에서 금년 데이터 직접 읽기 (사용자 확인: AV열 3행에 25년 실적)
+    const row3Data = rawData[ROW_3_INDEX] as any[];
+    if (!existingWeekNumbers.has(47) && row3Data && row3Data.length > AV_COLUMN_INDEX) {
+      const 금년47 = parseNumericCell(row3Data[AV_COLUMN_INDEX]);
+      // 전년 데이터는 다른 행에서 찾거나 0으로 설정
+      const 전년47 = lastYearRow && lastYearRow.length > AV_COLUMN_INDEX 
+        ? parseNumericCell(lastYearRow[AV_COLUMN_INDEX])
+        : 0;
+      
+      if (금년47 > 0) {
+        const 신장율47 = 전년47 > 0 ? Math.round(((금년47 - 전년47) / 전년47) * 100) : 0;
+        
+        weeklyData.push({
+          week: '47주',
+          금년: Math.round(금년47),
+          전년: Math.round(전년47),
+          신장율: 신장율47
+        });
+        
+        console.log(`   🎯 47주 AV열 직접 읽기 성공! AV열(인덱스 ${AV_COLUMN_INDEX}) 3행: 금년 ${Math.round(금년47).toLocaleString()}, 전년 ${Math.round(전년47).toLocaleString()}, 신장율 ${신장율47}%`);
+      } else {
+        console.log(`   ⚠️  AV열(인덱스 ${AV_COLUMN_INDEX}) 3행에서 47주 데이터를 찾을 수 없습니다 (값: ${금년47})`);
+      }
+    }
+    
+    console.log(`✅ JSON에서 ${weeklyData.length}개 주차별 데이터 파싱 완료`);
+    
+    // 추출된 주차 번호 목록 확인 (47주 포함 여부)
+    const weekNumbers = weeklyData.map(w => {
+      const num = parseInt(w.week.replace('주', ''));
+      return num;
+    }).sort((a, b) => a - b);
+    
+    const hasWeek47 = weekNumbers.includes(47);
+    console.log(`📊 추출된 주차 범위: ${weekNumbers[0]}주 ~ ${weekNumbers[weekNumbers.length - 1]}주`);
+    console.log(`${hasWeek47 ? '✅' : '⚠️'} 47주 데이터: ${hasWeek47 ? '포함됨' : '누락됨'}`);
+    
+    if (!hasWeek47) {
+      console.log(`🔍 47주 근처 데이터 확인:`);
+      const nearbyWeeks = weeklyData.filter(w => {
+        const num = parseInt(w.week.replace('주', ''));
+        return num >= 45 && num <= 50;
+      });
+      nearbyWeeks.forEach(w => {
+        console.log(`   - ${w.week}: 금년 ${w.금년.toLocaleString()}, 전년 ${w.전년.toLocaleString()}`);
+      });
+      
+      // 47주가 없는 경우, 원본 데이터에서 직접 찾기
+      console.log(`\n🔍 원본 데이터에서 47주 직접 검색 (40-55 컬럼):`);
+      for (let col = 40; col < Math.min(weekRow.length, 55); col++) {
+        const weekCell = weekRow[col];
+        if (weekCell && String(weekCell).includes('47')) {
+          const weekStr = String(weekCell).trim();
+          const 금년 = parseNumericCell(thisYearRow[col]);
+          const 전년 = parseNumericCell(lastYearRow[col]);
+          console.log(`   컬럼 ${col}: "${weekStr}" -> 금년: ${금년.toLocaleString()}, 전년: ${전년.toLocaleString()}`);
+        }
+      }
+    }
+    
+    return weeklyData;
+    
+  } catch (error: any) {
+    console.error('주차별 데이터 파싱 오류:', error);
     return [];
   }
 }

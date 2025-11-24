@@ -286,11 +286,9 @@ export default function EnhancedDashboard() {
             </div>
 
             {/* 주차별 매출 추이 */}
-            {data.weeklySales && data.weeklySales.length > 0 && (
-              <div className="mb-8">
-                <WeeklySalesChart data={data.weeklySales} />
-              </div>
-            )}
+            <div className="mb-8">
+              <WeeklySalesChart data={data.weeklySales || []} />
+            </div>
 
             {/* 월별 매출 추이 */}
             <div className="mb-8">

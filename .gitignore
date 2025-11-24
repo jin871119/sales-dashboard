@@ -36,3 +36,14 @@ next-env.d.ts
 
 # Excel analysis files
 excel-analysis-*.json
+
+# 엑셀 파일 (JSON으로 변환된 파일만 배포)
+*.xlsx
+!ending focast.xlsx
+
+# 배포 스크립트 (로컬 개발용)
+prepare-deploy.js
+convert-*.js
+*.bat
+check-*.js
+analyze-*.js

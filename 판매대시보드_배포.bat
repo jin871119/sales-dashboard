@@ -34,9 +34,11 @@ echo 📊 배포된 기능:
 echo    ✅ 판매 대시보드 (일주월별)
 echo    ✅ ending focast.xlsx 데이터 연동
 echo    ✅ backdata.xlsx JSON 지원 (Vercel)
-echo    ✅ 상권별 필터 기능
+echo    ✅ 상권 필터 (backdata.xlsx 상권구분 시트 기반)
+echo    ✅ 월별 매출 추이 (backdata.xlsx 월별목표 시트)
+echo    ✅ 제품 분석 필터 (시즌, 상권)
+echo    ✅ 워스트 아이템 20개
 echo    ✅ 지역별 분석 (매장 분석)
-echo    ✅ 개요 탭 데이터 완성
 echo.
 echo 💡 배포 후 테스트:
 echo    1. 개요 탭 확인

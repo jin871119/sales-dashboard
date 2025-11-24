@@ -382,6 +382,11 @@ export default function SeoulRealtimeDashboard() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
           📊 데이터 출처: <a href="https://data.seoul.go.kr/SeoulRtd/list" target="_blank" rel="noopener noreferrer" className="underline font-medium">서울시 실시간 도시데이터</a>
+          {data.isMockData && (
+            <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+              ⚠️ 목업 데이터 (API 키 설정 필요)
+            </span>
+          )}
         </p>
         <p className="text-xs text-blue-600 mt-1">
           * 10분마다 자동 업데이트됩니다. 지역을 클릭하면 상세 상권 정보를 볼 수 있습니다.

@@ -1,0 +1,18 @@
+# 엑셀 파일 (JSON으로 변환된 파일만 업로드)
+*.xlsx
+!ending focast.xlsx
+
+# 로컬 개발 파일
+.env.local
+*.log
+.DS_Store
+
+# 분석 스크립트
+analyze-*.js
+check-*.js
+convert-*.js
+*.bat
+
+# Node modules는 Vercel이 자동 설치
+node_modules/
+
