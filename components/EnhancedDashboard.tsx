@@ -6,12 +6,10 @@ import MetricCard from "./MetricCard";
 import SalesChart from "./SalesChart";
 import WeeklySalesChart from "./WeeklySalesChart";
 import SummaryTable from "./SummaryTable";
-import ForecastChart from "./ForecastChart";
-import DataTable from "./DataTable";
-import SummaryDashboard from "./SummaryDashboard";
 import StoreAreaSelector from "./StoreAreaSelector";
+import StoreDCRate from "./StoreDCRate";
 import WeeklySalesDashboard from "./WeeklySales/WeeklySalesDashboard";
-import SeoulRealtimeDashboard from "./SeoulRealtime/SeoulRealtimeDashboard";
+import SummaryDashboard from "./SummaryDashboard";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -20,9 +18,8 @@ import {
   Target,
   Activity,
   Calendar,
-  FileText,
-  PieChart as PieChartIcon,
-  MapPin
+  MapPin,
+  Sparkles
 } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
 import type { WeeklyMeetingData } from "@/lib/weeklyMeetingReader";
@@ -47,7 +44,8 @@ export default function EnhancedDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
   const [weeklyMeetingData, setWeeklyMeetingData] = useState<WeeklyMeetingData | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "summary" | "forecast" | "details" | "weekly-sales" | "store-distribution" | "seoul-realtime">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "weekly-sales" | "store-distribution" | "category">("overview");
+  const [showKpiInsight, setShowKpiInsight] = useState(false);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -149,18 +147,19 @@ export default function EnhancedDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         {/* 헤더 */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
               📊 Sales Dashboard
             </h1>
-            <p className="text-gray-600">
-              2025 Sales Performance & Forecast Analysis
+            <p className="text-sm sm:text-base text-gray-600">
+              <span className="hidden sm:inline">2025 Sales Performance & Forecast Analysis</span>
+              <span className="sm:hidden">2025 Sales Dashboard</span>
               {data.summary && (
-                <span className="ml-4 text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
+                <span className="ml-2 sm:ml-4 text-xs sm:text-sm bg-blue-100 text-blue-700 px-2 sm:px-3 py-1 rounded-full">
                   📊 {data.summary.totalRows?.toLocaleString()} Records
                 </span>
               )}
@@ -169,19 +168,21 @@ export default function EnhancedDashboard() {
             
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <Activity className="w-4 h-4" />
-              새로고침
+              <span className="hidden sm:inline">새로고침</span>
+              <span className="sm:hidden">🔄</span>
             </button>
           </div>
         </div>
 
         {/* 탭 네비게이션 */}
-        <div className="mb-6 bg-white rounded-xl shadow-sm p-1 inline-flex flex-wrap">
+        <div className="mb-4 sm:mb-6 bg-white rounded-xl shadow-sm p-1 overflow-x-auto">
+          <div className="inline-flex min-w-full sm:min-w-0 flex-wrap sm:flex-nowrap gap-1 sm:gap-0">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
+            className={`px-3 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base whitespace-nowrap ${
               activeTab === "overview"
                 ? "bg-purple-600 text-white shadow-md"
                 : "text-gray-600 hover:bg-gray-100"
@@ -191,7 +192,7 @@ export default function EnhancedDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("weekly-sales")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
+            className={`px-3 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base whitespace-nowrap ${
               activeTab === "weekly-sales"
                 ? "bg-purple-600 text-white shadow-md"
                 : "text-gray-600 hover:bg-gray-100"
@@ -201,7 +202,7 @@ export default function EnhancedDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("store-distribution")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
+            className={`px-3 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base whitespace-nowrap ${
               activeTab === "store-distribution"
                 ? "bg-purple-600 text-white shadow-md"
                 : "text-gray-600 hover:bg-gray-100"
@@ -210,56 +211,26 @@ export default function EnhancedDashboard() {
             🏢 백화점 분포도
           </button>
           <button
-            onClick={() => setActiveTab("seoul-realtime")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
-              activeTab === "seoul-realtime"
+            onClick={() => setActiveTab("category")}
+            className={`px-3 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm sm:text-base whitespace-nowrap ${
+              activeTab === "category"
                 ? "bg-purple-600 text-white shadow-md"
                 : "text-gray-600 hover:bg-gray-100"
             }`}
           >
-            🌆 서울 실시간
+            📊 카테고리
           </button>
-          <button
-            onClick={() => setActiveTab("summary")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
-              activeTab === "summary"
-                ? "bg-purple-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            📈 요약 (상권/팀/유통)
-          </button>
-          <button
-            onClick={() => setActiveTab("forecast")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
-              activeTab === "forecast"
-                ? "bg-purple-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            🔮 예측
-          </button>
-          <button
-            onClick={() => setActiveTab("details")}
-            className={`px-6 py-2 rounded-lg font-medium transition-all ${
-              activeTab === "details"
-                ? "bg-purple-600 text-white shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            📋 상세
-          </button>
+          </div>
         </div>
 
         {/* 개요 탭 */}
         {activeTab === "overview" && (
           <div className="space-y-8">
             {/* KPI 카드 그리드 */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8 relative">
               <MetricCard
                 title="매출목표"
                 value={data.kpis.salesTarget.value}
-                subtitle="H7"
                 icon={<Target className="w-6 h-6" />}
                 color="blue"
                 trend={{
@@ -269,8 +240,7 @@ export default function EnhancedDashboard() {
               />
               <MetricCard
                 title="실적"
-                value={data.kpis.periodPerformance?.value || "₩0"}
-                subtitle="Q7"
+                value={data.kpis.periodPerformance?.value || "0.0억원"}
                 icon={<TrendingUp className="w-6 h-6" />}
                 color="green"
                 trend={{
@@ -280,8 +250,7 @@ export default function EnhancedDashboard() {
               />
               <MetricCard
                 title="전년실적"
-                value={data.kpis.lastYearPeriod?.value || "₩0"}
-                subtitle="R7"
+                value={data.kpis.lastYearPeriod?.value || "0.0억원"}
                 icon={<Calendar className="w-6 h-6" />}
                 color="purple"
                 trend={{
@@ -291,8 +260,7 @@ export default function EnhancedDashboard() {
               />
               <MetricCard
                 title="전년비"
-                value={data.kpis.periodGrowthRate?.value || "0%"}
-                subtitle="S7"
+                value={data.kpis.periodGrowthRate?.value || "0.0%"}
                 icon={<Activity className="w-6 h-6" />}
                 color="orange"
                 trend={{
@@ -303,7 +271,6 @@ export default function EnhancedDashboard() {
               <MetricCard
                 title="예상마감"
                 value={data.kpis.forecast.value}
-                subtitle="I7"
                 icon={<TrendingUp className="w-6 h-6" />}
                 color="green"
                 trend={{
@@ -311,18 +278,59 @@ export default function EnhancedDashboard() {
                   isPositive: data.kpis.forecast.trend === "up"
                 }}
               />
-              <MetricCard
-                title="예상달성율"
-                value={data.kpis.forecastAchievementRate?.value || "0%"}
-                subtitle="J7"
-                icon={<Activity className="w-6 h-6" />}
-                color="orange"
-                trend={{
-                  value: data.kpis.forecastAchievementRate?.change || "예상달성율",
-                  isPositive: data.kpis.forecastAchievementRate?.trend === "up"
-                }}
-              />
+              {/* 예상달성율 카드 - AI 버튼 포함 */}
+              <div className="relative">
+                {/* AI 버튼 - 카드 위에 작게 배치 */}
+                <button
+                  onClick={() => setShowKpiInsight(!showKpiInsight)}
+                  className={`absolute -top-2 -right-2 z-10 p-1.5 rounded-full shadow-lg transition-all ${
+                    showKpiInsight
+                      ? 'bg-yellow-400 text-gray-900'
+                      : 'bg-white text-purple-600 hover:bg-purple-50'
+                  }`}
+                  title="AI 인사이트"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                </button>
+                <MetricCard
+                  title="예상달성율"
+                  value={data.kpis.forecastAchievementRate?.value || "0.0%"}
+                  icon={<Activity className="w-6 h-6" />}
+                  color="orange"
+                  trend={{
+                    value: data.kpis.forecastAchievementRate?.change || "예상달성율",
+                    isPositive: data.kpis.forecastAchievementRate?.trend === "up"
+                  }}
+                />
+              </div>
             </div>
+
+            {/* KPI AI 인사이트 */}
+            {showKpiInsight && data && (
+              <div className="mb-8 bg-gradient-to-br from-yellow-50 via-orange-50 to-pink-50 rounded-xl p-6 shadow-lg border-2 border-yellow-300">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="flex-shrink-0 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl p-3 shadow-lg">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-black text-gray-900 mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      🤖 KPI AI 인사이트
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">메인 KPI 데이터 기반 분석 및 권장사항</p>
+                    <div className="space-y-3">
+                      {generateKpiInsights(data.kpis).map((insight, idx) => (
+                        <div 
+                          key={idx}
+                          className="bg-white rounded-lg p-4 shadow-md border-l-4 border-purple-500 hover:shadow-lg transition-shadow"
+                        >
+                          <p className="text-sm text-gray-800 leading-relaxed font-medium">{insight}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 주차별 매출 추이 */}
             <div className="mb-8">
@@ -347,129 +355,14 @@ export default function EnhancedDashboard() {
                 <StoreAreaSelector storeByArea={data.storeByArea} />
               </div>
             )}
+
+            {/* 매장별 DC율 */}
+            <div className="mb-8">
+              <StoreDCRate data={data.storeDCRate || []} />
+            </div>
           </div>
         )}
 
-        {/* 요약 탭 (상권별, team별, 유통별, 순수별, 단체별) */}
-        {activeTab === "summary" && data.summarySheet && (
-          <SummaryDashboard data={data.summarySheet} />
-        )}
-
-        {activeTab === "summary" && !data.summarySheet && (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <PieChartIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              요약 시트 데이터를 분석 중입니다
-            </h3>
-            <p className="text-gray-500 mb-6">
-              analyze-summary.bat를 실행하여 &quot;요약&quot; 시트를 분석하세요.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              새로고침
-            </button>
-          </div>
-        )}
-
-        {/* 예측 탭 */}
-        {activeTab === "forecast" && (
-          <>
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
-              <p className="text-blue-800 font-medium">
-                💡 이 섹션은 ending focast.xlsx 파일의 실제 예측 데이터를 표시합니다.
-              </p>
-              <p className="text-blue-600 text-sm mt-1">
-                엑셀 파일을 분석한 후 데이터 구조에 맞게 자동으로 업데이트됩니다.
-              </p>
-            </div>
-
-            {data.forecast && data.forecast.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 gap-6 mb-8">
-                  <ForecastChart 
-                    data={data.forecast} 
-                    title="월별 실적 vs 예측"
-                  />
-                </div>
-                
-                <DataTable
-                  title="예측 데이터 상세"
-                  columns={[
-                    { key: "period", label: "기간" },
-                    { 
-                      key: "forecast", 
-                      label: "예측값",
-                      format: (v) => `₩${v?.toLocaleString() || 0}`
-                    },
-                    { 
-                      key: "actual", 
-                      label: "실적",
-                      format: (v) => v ? `₩${v.toLocaleString()}` : "-"
-                    },
-                  ]}
-                  data={data.forecast}
-                  pageSize={15}
-                />
-              </>
-            ) : (
-              <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  예측 데이터를 준비 중입니다
-                </h3>
-                <p className="text-gray-500 mb-6">
-                  setup-excel.bat를 실행하여 엑셀 파일을 분석하세요.
-                </p>
-                <button
-                  onClick={() => window.open('/api/test-excel', '_blank')}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  엑셀 분석 상태 확인
-                </button>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* 상세 탭 */}
-        {activeTab === "details" && (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <Calendar className="w-8 h-8 text-blue-600" />
-                  <h3 className="text-lg font-bold text-gray-900">데이터 기간</h3>
-                </div>
-                <p className="text-2xl font-bold text-gray-800">
-                  {data.summary?.dataRange || "2025년"}
-                </p>
-              </div>
-              
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <FileText className="w-8 h-8 text-green-600" />
-                  <h3 className="text-lg font-bold text-gray-900">총 데이터</h3>
-                </div>
-                <p className="text-2xl font-bold text-gray-800">
-                  {data.summary?.totalRows?.toLocaleString() || "N/A"}
-                  <span className="text-sm text-gray-500 ml-2">건</span>
-                </p>
-              </div>
-              
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <Activity className="w-8 h-8 text-purple-600" />
-                  <h3 className="text-lg font-bold text-gray-900">마지막 업데이트</h3>
-                </div>
-                <p className="text-lg font-semibold text-gray-800">
-                  {data.summary?.lastUpdated || "실시간"}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
 
         {/* 일주월별 판매 탭 */}
         {activeTab === "weekly-sales" && (
@@ -481,13 +374,121 @@ export default function EnhancedDashboard() {
           <StoreDistributionDashboard />
         )}
 
-        {/* 서울시 실시간 도시데이터 탭 */}
-        {activeTab === "seoul-realtime" && (
-          <SeoulRealtimeDashboard />
+        {/* 카테고리 탭 */}
+        {activeTab === "category" && (
+          <SummaryDashboard data={data.summarySheet || {}} />
         )}
       </div>
     </div>
   );
+}
+
+/**
+ * KPI 데이터를 기반으로 AI 인사이트 생성
+ */
+function generateKpiInsights(kpis: DashboardData['kpis']): string[] {
+  const insights: string[] = [];
+  
+  if (!kpis) return insights;
+  
+  // 값 추출 (억원 단위에서 숫자만 추출)
+  const parseBillion = (value: string): number => {
+    if (!value) return 0;
+    const numStr = value.replace(/[억원,]/g, '').trim();
+    return parseFloat(numStr) || 0;
+  };
+  
+  const parsePercent = (value: string): number => {
+    if (!value) return 0;
+    const numStr = value.replace(/[%,]/g, '').trim();
+    return parseFloat(numStr) || 0;
+  };
+  
+  const salesTarget = parseBillion(kpis.salesTarget.value) * 100000000; // 억원을 원으로 변환
+  const periodPerformance = parseBillion(kpis.periodPerformance?.value || "0") * 100000000;
+  const lastYearPeriod = parseBillion(kpis.lastYearPeriod?.value || "0") * 100000000;
+  const forecast = parseBillion(kpis.forecast.value) * 100000000;
+  const forecastAchievementRate = parsePercent(kpis.forecastAchievementRate?.value || "0");
+  const periodGrowthRate = parsePercent(kpis.periodGrowthRate?.value || "0");
+  
+  // 진도율 계산 (실적 / 목표)
+  const progressRate = salesTarget > 0 ? (periodPerformance / salesTarget) * 100 : 0;
+  
+  // 1. 예상달성율 분석
+  if (forecastAchievementRate >= 110) {
+    insights.push(`🚀 예상달성율 ${forecastAchievementRate.toFixed(1)}%로 목표를 크게 초과 달성할 전망입니다! 탁월한 성과입니다.`);
+  } else if (forecastAchievementRate >= 105) {
+    insights.push(`✨ 예상달성율 ${forecastAchievementRate.toFixed(1)}%로 목표를 초과 달성할 전망입니다. 현재 추세를 유지하세요!`);
+  } else if (forecastAchievementRate >= 100) {
+    insights.push(`✅ 예상달성율 ${forecastAchievementRate.toFixed(1)}%로 목표 달성이 예상됩니다. 마지막까지 집중하세요!`);
+  } else if (forecastAchievementRate >= 95) {
+    insights.push(`💡 예상달성율 ${forecastAchievementRate.toFixed(1)}%로 목표에 근접할 전망입니다. 추가 노력으로 목표 달성이 가능합니다.`);
+  } else if (forecastAchievementRate >= 90) {
+    insights.push(`⚠️ 예상달성율 ${forecastAchievementRate.toFixed(1)}%로 목표 미달이 우려됩니다. 전략 재검토가 필요합니다.`);
+  } else {
+    insights.push(`🔴 예상달성율 ${forecastAchievementRate.toFixed(1)}%로 목표 달성이 어려울 전망입니다. 즉각적인 대응이 필요합니다.`);
+  }
+  
+  // 2. 전년비 분석
+  if (periodGrowthRate >= 15) {
+    insights.push(`📈 전년비 ${periodGrowthRate >= 0 ? '+' : ''}${periodGrowthRate.toFixed(1)}%로 매우 강력한 성장세를 보이고 있습니다.`);
+  } else if (periodGrowthRate >= 10) {
+    insights.push(`📊 전년비 ${periodGrowthRate >= 0 ? '+' : ''}${periodGrowthRate.toFixed(1)}%로 강력한 성장세입니다.`);
+  } else if (periodGrowthRate >= 5) {
+    insights.push(`📈 전년비 ${periodGrowthRate >= 0 ? '+' : ''}${periodGrowthRate.toFixed(1)}%로 안정적인 성장세를 유지하고 있습니다.`);
+  } else if (periodGrowthRate >= 0) {
+    insights.push(`📊 전년비 ${periodGrowthRate >= 0 ? '+' : ''}${periodGrowthRate.toFixed(1)}%로 소폭 성장하고 있습니다.`);
+  } else if (periodGrowthRate >= -5) {
+    insights.push(`📉 전년비 ${periodGrowthRate.toFixed(1)}%로 소폭 감소했습니다. 시장 상황 점검이 필요합니다.`);
+  } else {
+    insights.push(`⚠️ 전년비 ${periodGrowthRate.toFixed(1)}%로 큰 폭 감소했습니다. 즉각적인 대응이 필요합니다.`);
+  }
+  
+  // 3. 진도율 분석
+  if (progressRate >= 90) {
+    insights.push(`🎯 현재 진도율 ${progressRate.toFixed(1)}%로 목표 달성이 거의 확실합니다!`);
+  } else if (progressRate >= 75) {
+    insights.push(`✅ 현재 진도율 ${progressRate.toFixed(1)}%로 양호한 진행 상황입니다.`);
+  } else if (progressRate >= 60) {
+    insights.push(`💡 현재 진도율 ${progressRate.toFixed(1)}%로 보통 수준입니다. 목표 달성을 위해 추가 노력이 필요합니다.`);
+  } else if (progressRate >= 50) {
+    insights.push(`⚠️ 현재 진도율 ${progressRate.toFixed(1)}%로 목표 달성을 위해 더 많은 노력이 필요합니다.`);
+  } else {
+    insights.push(`🔴 현재 진도율이 ${progressRate.toFixed(1)}%로 저조합니다. 즉각적인 대응이 필요합니다.`);
+  }
+  
+  // 4. 예상마감 vs 목표 비교
+  const gap = forecast - salesTarget;
+  const gapBillion = Math.abs(gap) / 100000000;
+  if (gap > 0) {
+    insights.push(`💰 예상마감이 목표보다 ${gapBillion.toFixed(1)}억원 많아 초과 달성이 예상됩니다.`);
+  } else if (gap < 0) {
+    insights.push(`💡 목표 달성을 위해 예상보다 ${gapBillion.toFixed(1)}억원의 추가 매출이 필요합니다.`);
+  } else {
+    insights.push(`🎯 예상마감이 목표와 거의 일치합니다. 정확한 예측입니다!`);
+  }
+  
+  // 5. 실적 vs 전년실적 비교
+  const performanceGap = periodPerformance - lastYearPeriod;
+  const performanceGapBillion = Math.abs(performanceGap) / 100000000;
+  if (performanceGap > 0) {
+    insights.push(`📈 현재 실적이 전년 대비 ${performanceGapBillion.toFixed(1)}억원 증가했습니다.`);
+  } else if (performanceGap < 0) {
+    insights.push(`📉 현재 실적이 전년 대비 ${performanceGapBillion.toFixed(1)}억원 감소했습니다.`);
+  }
+  
+  // 6. 권장사항
+  if (forecastAchievementRate >= 100 && periodGrowthRate >= 5) {
+    insights.push(`🎉 축하합니다! 목표 달성과 성장을 동시에 이루고 있습니다. 현재 추세를 유지하세요!`);
+  } else if (forecastAchievementRate >= 100) {
+    insights.push(`✅ 목표 달성은 예상되지만, 전년 대비 성장률을 높이기 위한 전략이 필요합니다.`);
+  } else if (forecastAchievementRate >= 95) {
+    insights.push(`💡 목표 달성을 위해 마지막 스퍼트가 필요합니다. 집중 마케팅과 영업 활동을 강화하세요.`);
+  } else {
+    insights.push(`⚠️ 목표 달성을 위해 전략 재검토가 필요합니다. 시장 상황 분석과 대응 방안을 수립하세요.`);
+  }
+  
+  return insights;
 }
 
 // 기본 대시보드 데이터 (API 실패 시 사용)

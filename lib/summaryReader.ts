@@ -323,80 +323,117 @@ function extractByCategory(
 
 /**
  * 상권별 데이터 추출 (상권 표)
- * TARGET, Sales FCST, LY ACTUAL 포함
+ * E열: 상권명 (국내, 면세, 도매, RF)
+ * H열: TARGET (매출목표)
+ * I열: Sales AMT (예상마감)
+ * J열: Ach% (예상달성율)
+ * Q열: Actual MTD (실적)
+ * R열: LY ACTUAL (전년실적)
+ * S열: GR (전년비)
  */
 function extractAreaData(data: any[]): any[] {
-  console.log('✅ 상권별 데이터 추출 (TARGET, 기간실적, FCST, LY)');
+  console.log('✅ 상권별 데이터 추출 (E열 상권, H열 TARGET, I열 Sales AMT, J열 Ach%, Q열 Actual MTD, R열 LY ACTUAL, S열 GR)');
   console.log(`   총 ${data.length}행 검색 중...`);
   
   const result: any[] = [];
   
-  // 상권 표 찾기 (row 6부터 시작 - 상권 SUM 행)
-  for (let i = 5; i < data.length; i++) {
+  // 숫자 파싱 헬퍼
+  const parseValue = (val: any): number => {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number') return val;
+    const str = String(val).replace(/[^0-9.-]/g, '');
+    return parseFloat(str) || 0;
+  };
+  
+  // 상권 표 찾기 (E열(__EMPTY_4)에 "상권"이 있는 행)
+  for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    // 디버깅: 처음 몇 행 확인
-    if (i < 10) {
-      console.log(`   행 ${i + 1} 확인: __EMPTY_4 = "${row['__EMPTY_4']}", __EMPTY_6 = "${row['__EMPTY_6']}"`);
-    }
-    if (row['__EMPTY_4'] === '상권') {
+    const eColumn = String(row['__EMPTY_4'] || '').trim();
+    
+    if (eColumn === '상권') {
       console.log(`   ✅ 상권 표 발견! 행 ${i + 1}`);
-      // SUM 행 먼저 추가 (SUM을 TTL로 변경)
-      const sumName = String(row['__EMPTY_6'] || '').trim().replace('SUM', 'TTL');
-      if (sumName) {
-        const target = Math.round(parseFloat(String(row['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0);
-        const periodPerformance = Math.round(parseFloat(String(row['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0);
-        const lastYearPeriod = Math.round(parseFloat(String(row['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0);
-        const forecast = Math.round(parseFloat(String(row['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0);
+      
+      // SUM 행 먼저 추가 (KPI 데이터로 사용)
+      const sumName = String(row['__EMPTY_6'] || '').trim();
+      if (sumName && (sumName === 'SUM' || sumName.includes('SUM'))) {
+        const target = Math.round(parseValue(row['__EMPTY_7'])); // H열: TARGET
+        const salesAMT = Math.round(parseValue(row['__EMPTY_8'])); // I열: Sales AMT
+        const achPercent = parseValue(row['__EMPTY_9']); // J열: Ach%
+        const actualMTD = Math.round(parseValue(row['__EMPTY_16'])); // Q열: Actual MTD
+        const lyActual = Math.round(parseValue(row['__EMPTY_17'])); // R열: LY ACTUAL
+        const gr = parseValue(row['__EMPTY_18']); // S열: GR
+        
+        // Ach%가 소수면 100 곱하기 (예: 0.95 -> 95%)
+        const achPercentValue = achPercent > 1 ? achPercent : achPercent * 100;
+        // GR이 소수면 100 곱하기 (예: 0.05 -> 5%)
+        const grValue = gr > 1 ? gr : gr * 100;
+        
         result.push({
-          name: sumName,
+          name: 'SUM', // KPI 데이터로 사용하기 위해 'SUM'으로 유지
           target,
-          periodPerformance,
-          lastYearPeriod,
-          periodGrowthRate: Math.round((parseFloat(String(row['__EMPTY_18'] || '0')) || 0) * 100),
-          forecast,
-          forecastGrowthRate: Math.round((parseFloat(String(row['__EMPTY_11'] || '0')) || 0) * 100),
-          lastYear: Math.round(parseFloat(String(row['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0),
+          periodPerformance: actualMTD, // Q열: Actual MTD
+          lastYearPeriod: lyActual, // R열: LY ACTUAL
+          periodGrowthRate: Math.round(grValue), // S열: GR
+          forecast: salesAMT, // I열: Sales AMT
+          forecastAchievementRate: Math.round(achPercentValue), // J열: Ach%
           // 11월 데이터
           novemberTarget: target,
-          actualMTD: periodPerformance,
-          lyActual: lastYearPeriod,
-          salesFCST: forecast
+          actualMTD: actualMTD,
+          lyActual: lyActual,
+          salesFCST: salesAMT
         });
+        
+        console.log(`   ✅ SUM 행 추출 (KPI 데이터): 목표=${target.toLocaleString()}, 실적=${actualMTD.toLocaleString()}, 전년실적=${lyActual.toLocaleString()}, 전년비=${Math.round(grValue)}%, 예상마감=${salesAMT.toLocaleString()}, 예상달성율=${Math.round(achPercentValue)}%`);
       }
       
-      // 상권 표의 데이터 추출 (다음 행들)
-      for (let j = i + 1; j < i + 15; j++) {
-        if (j >= data.length) break;
+      // 상권별 개별 데이터 추출 (국내, 면세, 도매, RF)
+      // G열(__EMPTY_6)에 소제목이 있음
+      for (let j = i + 1; j < i + 15 && j < data.length; j++) {
         const dataRow = data[j];
         
-        // 다음 표가 시작되면 중단
-        if (dataRow['__EMPTY_4'] === 'TEAM' || dataRow['__EMPTY_4']?.includes('유통')) break;
+        // 다음 표가 시작되면 중단 (TEAM, 유통 등)
+        const nextEColumn = String(dataRow['__EMPTY_4'] || '').trim();
+        if (nextEColumn === 'TEAM' || nextEColumn.includes('유통') || nextEColumn.includes('순수') || nextEColumn.includes('단체')) {
+          break;
+        }
         
+        // E열이 비어있으면 다음 행으로
+        if (!nextEColumn || nextEColumn === '') continue;
+        
+        // 상권명은 G열(__EMPTY_6)에서 소제목 가져오기
         const name = String(dataRow['__EMPTY_6'] || '').trim();
-        const target = parseFloat(String(dataRow['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-        const periodPerformance = parseFloat(String(dataRow['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-        const lastYearPeriod = parseFloat(String(dataRow['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-        const periodGrowthRate = (parseFloat(String(dataRow['__EMPTY_18'] || '0')) || 0) * 100;
-        const forecast = parseFloat(String(dataRow['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-        const forecastGrowthRate = (parseFloat(String(dataRow['__EMPTY_11'] || '0')) || 0) * 100;
-        const lastYear = parseFloat(String(dataRow['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0;
+        if (!name || name === 'SUM' || name === '상권' || name.includes('제외')) continue;
         
-        if (name && (target > 0 || forecast > 0) && !name.includes('제외')) {
+        // 각 컬럼에서 데이터 추출
+        const target = Math.round(parseValue(dataRow['__EMPTY_7'])); // H열: TARGET
+        const salesAMT = Math.round(parseValue(dataRow['__EMPTY_8'])); // I열: Sales AMT
+        const achPercent = parseValue(dataRow['__EMPTY_9']); // J열: Ach%
+        const actualMTD = Math.round(parseValue(dataRow['__EMPTY_16'])); // Q열: Actual MTD
+        const lyActual = Math.round(parseValue(dataRow['__EMPTY_17'])); // R열: LY ACTUAL
+        const gr = parseValue(dataRow['__EMPTY_18']); // S열: GR
+        
+        // 데이터가 있는 경우만 추가
+        if (target > 0 || actualMTD > 0 || salesAMT > 0) {
+          // Ach%와 GR이 소수면 100 곱하기
+          const achPercentValue = achPercent > 1 ? achPercent : achPercent * 100;
+          const grValue = gr > 1 ? gr : gr * 100;
+          
           result.push({
             name,
-            target: Math.round(target),
-            periodPerformance: Math.round(periodPerformance),
-            lastYearPeriod: Math.round(lastYearPeriod),
-            periodGrowthRate: Math.round(periodGrowthRate),
-            forecast: Math.round(forecast),
-            forecastGrowthRate: Math.round(forecastGrowthRate),
-            lastYear: Math.round(lastYear),
+            target,
+            periodPerformance: actualMTD, // Q열: Actual MTD
+            lastYearPeriod: lyActual, // R열: LY ACTUAL
+            periodGrowthRate: Math.round(grValue), // S열: GR
+            forecast: salesAMT, // I열: Sales AMT
+            forecastAchievementRate: Math.round(achPercentValue), // J열: Ach%
             // 11월 데이터
-            novemberTarget: Math.round(target), // 11월 목표
-            actualMTD: Math.round(periodPerformance), // Actual MTD
-            lyActual: Math.round(lastYearPeriod), // LY Actual
-            salesFCST: Math.round(forecast) // Sales FCST
+            novemberTarget: target,
+            actualMTD: actualMTD,
+            lyActual: lyActual,
+            salesFCST: salesAMT
           });
+          
+          console.log(`   ✅ ${name}: 목표=${target.toLocaleString()}, 실적=${actualMTD.toLocaleString()}, 전년실적=${lyActual.toLocaleString()}, 전년비=${Math.round(grValue)}%, 예상마감=${salesAMT.toLocaleString()}, 예상달성율=${Math.round(achPercentValue)}%`);
         }
       }
       break;
@@ -451,13 +488,21 @@ function extractTeamData(data: any[]): any[] {
       }
       
       // TEAM 표의 데이터 추출
+      // G열(__EMPTY_6)에 소제목이 있음
       for (let j = i + 1; j < i + 15; j++) {
         if (j >= data.length) break;
         const dataRow = data[j];
         
         // 다음 표가 시작되면 중단
-        if (dataRow['__EMPTY_4']?.includes('유통')) break;
+        const nextEColumn = String(dataRow['__EMPTY_4'] || '').trim();
+        if (nextEColumn === '유통' || nextEColumn.includes('유통') || nextEColumn.includes('순수') || nextEColumn.includes('단체')) {
+          break;
+        }
         
+        // E열이 비어있으면 다음 행으로
+        if (!nextEColumn || nextEColumn === '') continue;
+        
+        // TEAM명은 G열(__EMPTY_6)에서 소제목 가져오기
         const name = String(dataRow['__EMPTY_6'] || '').trim();
         const target = parseFloat(String(dataRow['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
         const periodPerformance = parseFloat(String(dataRow['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
@@ -494,72 +539,125 @@ function extractTeamData(data: any[]): any[] {
 }
 
 /**
- * 유통별 데이터 추출 (요약 시트 21~27행)
- * TARGET, Sales FCST, LY ACTUAL 포함
+ * 유통별 데이터 추출
+ * E열: 유통 (구분자)
+ * G열: 소제목 (백화점, 대리점, 직영점 등)
+ * H열: TARGET (매출목표)
+ * I열: Sales AMT (예상마감)
+ * J열: Ach% (예상달성율)
+ * Q열: Actual MTD (실적)
+ * R열: LY ACTUAL (전년실적)
+ * S열: GR (전년비)
  */
 function extractChannelData(data: any[]): any[] {
-  console.log('✅ 유통별 데이터 추출 (21행부터 시작, TTL 없음)');
+  console.log('✅ 유통별 데이터 추출 (E열 유통, G열 소제목, H열 TARGET, I열 Sales AMT, J열 Ach%, Q열 Actual MTD, R열 LY ACTUAL, S열 GR)');
+  console.log(`   총 ${data.length}행 검색 중...`);
   
   const result: any[] = [];
   
-  console.log(`📊 총 데이터 행 수: ${data.length}`);
+  // 숫자 파싱 헬퍼
+  const parseValue = (val: any): number => {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number') return val;
+    const str = String(val).replace(/[^0-9.-]/g, '');
+    return parseFloat(str) || 0;
+  };
   
-  // 유통별은 TTL이 없고 21행(인덱스 20)부터 바로 시작!
-  // 21행: 백화점
-  // 22행: 대리점
-  // 23행: 직영점
-  // 24행: 면세+도매
-  // 25행: 온라인
-  // 26행: 상설(위탁)
-  
-  // 21~30행 처리 (인덱스 20~29)
-  for (let i = 20; i <= 29 && i < data.length; i++) {
+  // 유통 표 찾기 (E열(__EMPTY_4)에 "유통"이 있는 행)
+  for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    if (!row) {
-      console.log(`   행 ${i + 1}: 빈 행`);
-      continue;
-    }
+    const eColumn = String(row['__EMPTY_4'] || '').trim();
     
-    const name = String(row['__EMPTY_6'] || '').trim();
-    console.log(`   행 ${i + 1}: __EMPTY_6 = "${name}", __EMPTY_7 = "${row['__EMPTY_7']}"`);
-    if (!name) continue;
-    
-    // 다음 섹션(순수별 등)이 시작되면 중단
-    if (row['__EMPTY_4']?.includes('순수') || row['__EMPTY_4']?.includes('단체')) {
-      console.log(`   ⚠️  다음 섹션 감지: ${row['__EMPTY_4']}, 유통별 추출 중단`);
-      break;
-    }
-    
-    const target = parseFloat(String(row['__EMPTY_7'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const periodPerformance = parseFloat(String(row['__EMPTY_16'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const lastYearPeriod = parseFloat(String(row['__EMPTY_17'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const periodGrowthRate = (parseFloat(String(row['__EMPTY_18'] || '0')) || 0) * 100;
-    const forecast = parseFloat(String(row['__EMPTY_8'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    const forecastGrowthRate = (parseFloat(String(row['__EMPTY_11'] || '0')) || 0) * 100;
-    const lastYear = parseFloat(String(row['__EMPTY_10'] || '0').replace(/[^0-9.-]/g, '')) || 0;
-    
-    if (target > 0 || forecast > 0) {
-      result.push({
-        name: name,
-        target: Math.round(target),
-        periodPerformance: Math.round(periodPerformance),
-        lastYearPeriod: Math.round(lastYearPeriod),
-        periodGrowthRate: Math.round(periodGrowthRate),
-        forecast: Math.round(forecast),
-        forecastGrowthRate: Math.round(forecastGrowthRate),
-        lastYear: Math.round(lastYear),
-        // 11월 데이터
-        novemberTarget: Math.round(target),
-        actualMTD: Math.round(periodPerformance),
-        lyActual: Math.round(lastYearPeriod),
-        salesFCST: Math.round(forecast)
-      });
+    if (eColumn === '유통' || eColumn.includes('유통')) {
+      console.log(`   ✅ 유통 표 발견! 행 ${i + 1}`);
       
-      console.log(`   ${i + 1}행: ${name} - 목표: ${Math.round(target).toLocaleString()}, 기간실적: ${Math.round(periodPerformance).toLocaleString()}`);
+      // SUM 행 먼저 추가 (있는 경우)
+      const sumName = String(row['__EMPTY_6'] || '').trim();
+      if (sumName && (sumName === 'SUM' || sumName.includes('SUM'))) {
+        const target = Math.round(parseValue(row['__EMPTY_7'])); // H열: TARGET
+        const salesAMT = Math.round(parseValue(row['__EMPTY_8'])); // I열: Sales AMT
+        const achPercent = parseValue(row['__EMPTY_9']); // J열: Ach%
+        const actualMTD = Math.round(parseValue(row['__EMPTY_16'])); // Q열: Actual MTD
+        const lyActual = Math.round(parseValue(row['__EMPTY_17'])); // R열: LY ACTUAL
+        const gr = parseValue(row['__EMPTY_18']); // S열: GR
+        
+        // Ach%가 소수면 100 곱하기
+        const achPercentValue = achPercent > 1 ? achPercent : achPercent * 100;
+        // GR이 소수면 100 곱하기
+        const grValue = gr > 1 ? gr : gr * 100;
+        
+        result.push({
+          name: 'SUM',
+          target,
+          periodPerformance: actualMTD,
+          lastYearPeriod: lyActual,
+          periodGrowthRate: Math.round(grValue),
+          forecast: salesAMT,
+          forecastAchievementRate: Math.round(achPercentValue),
+          novemberTarget: target,
+          actualMTD: actualMTD,
+          lyActual: lyActual,
+          salesFCST: salesAMT
+        });
+        
+        console.log(`   ✅ SUM 행 추출: 목표=${target.toLocaleString()}, 실적=${actualMTD.toLocaleString()}, 전년실적=${lyActual.toLocaleString()}, 전년비=${Math.round(grValue)}%, 예상마감=${salesAMT.toLocaleString()}, 예상달성율=${Math.round(achPercentValue)}%`);
+      }
+      
+      // 유통별 개별 데이터 추출 (백화점, 대리점, 직영점 등)
+      // G열(__EMPTY_6)에 소제목이 있음
+      for (let j = i + 1; j < i + 15 && j < data.length; j++) {
+        const dataRow = data[j];
+        
+        // 다음 표가 시작되면 중단 (순수, 단체 등)
+        const nextEColumn = String(dataRow['__EMPTY_4'] || '').trim();
+        if (nextEColumn.includes('순수') || nextEColumn.includes('단체')) {
+          break;
+        }
+        
+        // E열이 비어있으면 다음 행으로
+        if (!nextEColumn || nextEColumn === '') continue;
+        
+        // 유통명은 G열(__EMPTY_6)에서 소제목 가져오기
+        const name = String(dataRow['__EMPTY_6'] || '').trim();
+        if (!name || name === 'SUM' || name === '유통' || name.includes('제외')) continue;
+    
+        // 각 컬럼에서 데이터 추출
+        const target = Math.round(parseValue(dataRow['__EMPTY_7'])); // H열: TARGET
+        const salesAMT = Math.round(parseValue(dataRow['__EMPTY_8'])); // I열: Sales AMT
+        const achPercent = parseValue(dataRow['__EMPTY_9']); // J열: Ach%
+        const actualMTD = Math.round(parseValue(dataRow['__EMPTY_16'])); // Q열: Actual MTD
+        const lyActual = Math.round(parseValue(dataRow['__EMPTY_17'])); // R열: LY ACTUAL
+        const gr = parseValue(dataRow['__EMPTY_18']); // S열: GR
+        
+        // 데이터가 있는 경우만 추가
+        if (target > 0 || actualMTD > 0 || salesAMT > 0) {
+          // Ach%와 GR이 소수면 100 곱하기
+          const achPercentValue = achPercent > 1 ? achPercent : achPercent * 100;
+          const grValue = gr > 1 ? gr : gr * 100;
+          
+          result.push({
+            name,
+            target,
+            periodPerformance: actualMTD, // Q열: Actual MTD
+            lastYearPeriod: lyActual, // R열: LY ACTUAL
+            periodGrowthRate: Math.round(grValue), // S열: GR
+            forecast: salesAMT, // I열: Sales AMT
+            forecastAchievementRate: Math.round(achPercentValue), // J열: Ach%
+            // 11월 데이터
+            novemberTarget: target,
+            actualMTD: actualMTD,
+            lyActual: lyActual,
+            salesFCST: salesAMT
+          });
+          
+          console.log(`   ✅ ${name}: 목표=${target.toLocaleString()}, 실적=${actualMTD.toLocaleString()}, 전년실적=${lyActual.toLocaleString()}, 전년비=${Math.round(grValue)}%, 예상마감=${salesAMT.toLocaleString()}, 예상달성율=${Math.round(achPercentValue)}%`);
+        }
+      }
+      break;
     }
   }
   
-  console.log(`✅ ${result.length}개 유통별 항목 추출 완료 (TTL + 개별 항목)`);
+  console.log(`   → ${result.length}개 항목 추출 (유통별)`);
   return result;
 }
 

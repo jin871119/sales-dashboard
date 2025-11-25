@@ -148,3 +148,6 @@ deploy-now.bat
 - **데이터 업데이트**: `prepare-deploy.js` 실행 후 재배포
 
 
+
+
+

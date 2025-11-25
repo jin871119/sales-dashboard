@@ -39,33 +39,34 @@ export default function MetricCard({
   trend,
 }: MetricCardProps) {
   return (
-    <div className={`${bgColorClasses[color]} border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all duration-300`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className={`${colorClasses[color]} p-2 rounded-lg text-white shadow-md`}>
-          <div className="w-5 h-5">
+    <div className={`${bgColorClasses[color]} border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-lg transition-all duration-300`}>
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <div className={`${colorClasses[color]} p-1.5 sm:p-2 rounded-lg text-white shadow-md`}>
+          <div className="w-4 h-4 sm:w-5 sm:h-5">
             {icon}
           </div>
         </div>
         {trend && (
           <div
-            className={`text-xs font-bold px-2 py-1 rounded-full ${
+            className={`text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${
               trend.isPositive
                 ? "bg-green-100 text-green-700"
                 : "bg-red-100 text-red-700"
             }`}
           >
-            {trend.value}
+            <span className="hidden sm:inline">{trend.value}</span>
+            <span className="sm:hidden text-[10px]">{trend.value.length > 8 ? trend.value.substring(0, 6) + '...' : trend.value}</span>
           </div>
         )}
       </div>
       
-      <h3 className="text-gray-600 text-xs font-medium mb-1">{title}</h3>
-      <p className="text-2xl font-bold text-gray-900 mb-1">
+      <h3 className="text-gray-600 text-[10px] sm:text-xs font-medium mb-1">{title}</h3>
+      <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1 break-words">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </p>
       
       {subtitle && (
-        <p className="text-xs text-gray-500">{subtitle}</p>
+        <p className="text-[10px] sm:text-xs text-gray-500">{subtitle}</p>
       )}
     </div>
   );

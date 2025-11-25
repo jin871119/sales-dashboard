@@ -72,6 +72,17 @@ export interface DashboardData {
     rawData?: any[];     // 원본 데이터
   };
   storeByArea?: { [area: string]: StorePerformance[] }; // 상권별 매장 실적
+  storeDCRate?: Array<{
+    area: string;
+    stores: Array<{
+      storeName: string;
+      realPrice?: number;      // 실판가
+      tagPrice?: number;       // 택가
+      dcRate?: number;         // DC율
+      lastYearDcRate?: number; // 전년DC율
+      difference?: number;     // 전년대비차이
+    }>;
+  }>; // 매장별 DC율
   summary?: {
     totalRows: number;
     lastUpdated: string;

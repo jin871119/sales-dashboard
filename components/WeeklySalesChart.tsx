@@ -34,15 +34,16 @@ export default function WeeklySalesChart({ data }: WeeklySalesChartProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">주차별 매출 추이</h2>
-        <p className="text-sm text-gray-600">
-          막대: 금년 vs 전년 매출 | 🟣 곡선: 신장율(%)
+    <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2">주차별 매출 추이</h2>
+        <p className="text-xs sm:text-sm text-gray-600">
+          <span className="hidden sm:inline">막대: 금년 vs 전년 매출 | 🟣 곡선: 신장율(%)</span>
+          <span className="sm:hidden">금년 vs 전년 | 신장율</span>
         </p>
       </div>
       
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={250} className="sm:h-[350px]">
         <ComposedChart data={data}>
           <defs>
             <linearGradient id="colorThisYear" x1="0" y1="0" x2="0" y2="1">
@@ -61,6 +62,7 @@ export default function WeeklySalesChart({ data }: WeeklySalesChartProps) {
             dataKey="week" 
             stroke="#666"
             style={{ fontSize: '10px' }}
+            className="text-[8px] sm:text-[10px]"
             interval={3}
           />
           
@@ -70,6 +72,8 @@ export default function WeeklySalesChart({ data }: WeeklySalesChartProps) {
             stroke="#666"
             tickFormatter={(value) => `${(value / 100000000).toFixed(0)}억`}
             style={{ fontSize: '12px' }}
+            className="text-[10px] sm:text-xs"
+            width={60}
             label={{ value: '매출액 (억원)', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
           />
           
@@ -80,6 +84,8 @@ export default function WeeklySalesChart({ data }: WeeklySalesChartProps) {
             stroke="#a855f7"
             tickFormatter={(value) => `${value}%`}
             style={{ fontSize: '12px' }}
+            className="text-[10px] sm:text-xs"
+            width={60}
             label={{ value: '신장율 (%)', angle: 90, position: 'insideRight', style: { fontSize: '12px' } }}
           />
           

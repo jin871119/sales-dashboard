@@ -44,38 +44,160 @@ export default function SeoulRealtimeDashboard() {
   const [dataType, setDataType] = useState<'population' | 'congestion' | 'commercial'>('congestion');
   const [selectedArea, setSelectedArea] = useState<SeoulAreaData | null>(null);
 
+  // 클라이언트에서는 서버 API를 통해 데이터를 가져옵니다 (보안)
+
+  // 서울시 주요 지역 코드 및 이름 매핑 (제공된 코드 기반)
+  const seoulPlaces = [
+    { code: 'PO001', name: '광화문·덕수궁' },
+    { code: 'PO002', name: '강남역' },
+    { code: 'PO003', name: '명동' },
+    { code: 'PO004', name: '홍대' },
+    { code: 'PO005', name: '잠실' },
+    { code: 'PO006', name: '이태원' },
+    { code: 'PO007', name: '서울역' },
+    { code: 'PO008', name: '가로수길' },
+    { code: 'PO009', name: '삼청동' },
+    { code: 'PO010', name: '성수' },
+    { code: 'PO011', name: '신촌' },
+    { code: 'PO012', name: '건대입구' },
+    { code: 'PO013', name: '합정' },
+    { code: 'PO014', name: '종로' },
+    { code: 'PO015', name: '동대문' },
+    { code: 'PO016', name: '인사동' },
+    { code: 'PO017', name: '청계천' },
+    { code: 'PO018', name: '코엑스' },
+    { code: 'PO019', name: '삼성역' },
+    { code: 'PO020', name: '여의도' },
+  ];
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/seoul-realtime?type=${dataType}`);
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '데이터 로드 실패');
+      // 여러 지역을 순차적으로 호출 (서버 API를 통해)
+      const allAreas: SeoulAreaData[] = [];
+      
+      // 테스트를 위해 처음 10개만 호출 (API 호출 제한 고려)
+      const placesToFetch = seoulPlaces.slice(0, 10);
+      
+      for (let i = 0; i < placesToFetch.length; i++) {
+        const place = placesToFetch[i];
+        
+        try {
+          console.log(`📡 [${i + 1}/${placesToFetch.length}] /api/seoul-realtime 호출 중... (Code: ${place.code})`);
+          
+          // 🚨 서울시 API 주소가 아니라 내가 만든 API Route 주소를 호출합니다!
+          const response = await fetch(`/api/seoul-realtime?code=${place.code}`, {
+            method: 'GET',
+            cache: 'no-store',
+          });
+          
+          if (!response.ok) {
+            // API Route에서 에러를 받은 경우 (400, 500 등)
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`API Route 오류 (${place.name}):`, errorData);
+            console.warn(`⚠️ ${place.name} 호출 실패: ${response.status} - ${errorData.error || '알 수 없는 오류'}`);
+            continue; // 실패한 지역은 스킵하고 다음 지역 호출
+          }
+          
+          const jsonData = await response.json();
+          
+          // 서울시 데이터 구조에 맞춰 인구 수 추출 (제공된 코드 구조)
+          if (jsonData.CITYDATA && jsonData.CITYDATA.LIVE_PPLTN_STTS) {
+            const liveData = jsonData.CITYDATA.LIVE_PPLTN_STTS;
+            
+            // 데이터 추출 (제공된 코드 방식)
+            const maxPopulation = liveData.AREA_PPLTN_MAX || '0';
+            const minPopulation = liveData.AREA_PPLTN_MIN || '0';
+            const congestionLevel = liveData.AREA_CONGEST_LVL || '보통';
+            const congestionMessage = liveData.AREA_CONGEST_MSG || '';
+            const updateTime = liveData.PPLTN_TIME || new Date().toISOString();
+            
+            console.log(`✅ ${place.name} 데이터 로드 성공: 최대인구 ${maxPopulation}명`);
+            
+            allAreas.push({
+              name: place.name,
+              congestionLevel: congestionLevel,
+              congestionMessage: congestionMessage,
+              population: parseInt(String(minPopulation).replace(/,/g, '')) || 0,
+              populationMax: parseInt(String(maxPopulation).replace(/,/g, '')) || 0,
+              updateTime: updateTime
+            });
+          } else {
+            console.warn(`⚠️ ${place.name}: LIVE_PPLTN_STTS 데이터를 찾을 수 없습니다.`);
+          }
+          
+          // API 호출 제한을 고려한 딜레이 (초당 1회 제한)
+          if (i < placesToFetch.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1100));
+          }
+        } catch (error: any) {
+          // 네트워크 또는 클라이언트 오류
+          console.error(`네트워크 또는 클라이언트 오류 (${place.name}):`, error);
+          console.warn(`⚠️ ${place.name} 호출 중 오류:`, error.message);
+          continue; // 오류 발생 시 다음 지역으로 계속
+        }
       }
       
-      const result = await response.json();
-      console.log('🌆 서울시 실시간 데이터 로드됨:', result);
+      // 데이터가 없으면 에러 표시
+      if (allAreas.length === 0) {
+        throw new Error('수집된 데이터가 없습니다. API 키를 확인하세요.');
+      }
+      
+      // 수집된 데이터를 표준 형식으로 변환
+      const result: SeoulRealtimeData = {
+        success: true,
+        type: dataType,
+        timestamp: new Date().toISOString(),
+        isMockData: false,
+        processed: {
+          areas: allAreas,
+          summary: {
+            totalAreas: allAreas.length,
+            avgCongestion: calculateAvgCongestion(allAreas)
+          }
+        }
+      };
       
       setData(result);
+      console.log('🌆 서울시 실시간 데이터 로드됨:', result);
       setLastUpdate(new Date().toLocaleTimeString('ko-KR'));
     } catch (error: any) {
       console.error("서울시 데이터 로딩 실패:", error);
-      setError(error.message);
+      setError(error.message || '데이터 로드 실패 (콘솔 확인)');
     } finally {
       setLoading(false);
     }
   }, [dataType]);
 
+  // 혼잡도 평균 계산
+  const calculateAvgCongestion = (areas: SeoulAreaData[]): number => {
+    if (areas.length === 0) return 0;
+    
+    const congestionLevels: { [key: string]: number } = {
+      '여유': 1,
+      '보통': 2,
+      '약간 붐빔': 3,
+      '붐빔': 4
+    };
+    
+    const sum = areas.reduce((acc, area) => {
+      return acc + (congestionLevels[area.congestionLevel] || 2);
+    }, 0);
+    
+    return sum / areas.length;
+  };
+
   useEffect(() => {
-    fetchData();
+    fetchData(); // 컴포넌트 로드 시 즉시 호출
     
-    // 10분마다 자동 새로고침
-    const interval = setInterval(fetchData, 10 * 60 * 1000);
+    // 5분(300000ms)마다 자동 업데이트
+    const intervalId = setInterval(fetchData, 300000);
     
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    // 클린업 함수 (컴포넌트가 사라질 때 타이머 해제 - 매우 중요)
+    return () => clearInterval(intervalId);
+  }, [fetchData]); // fetchData가 변경될 때마다 재설정
 
   // 혼잡도에 따른 색상 반환
   const getCongestionColor = (level: string) => {

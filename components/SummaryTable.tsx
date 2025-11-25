@@ -9,8 +9,8 @@ interface SummaryTableProps {
 }
 
 export default function SummaryTable({ data, weeklyMeetingData }: SummaryTableProps) {
-  // 기본값: 상권별, TEAM별, 유통별은 펼쳐진 상태
-  const [expandedSections, setExpandedSections] = useState<string[]>(['area', 'team', 'channel']);
+  // 기본값: 모든 섹션은 닫힌 상태
+  const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [aiInsights, setAiInsights] = useState<{ [key: string]: boolean }>({});
 
   const toggleSection = (section: string) => {
@@ -160,143 +160,161 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
     const displayItems = items;
 
     return (
-      <div className="mb-6 bg-white rounded-xl shadow-xl overflow-hidden border-2 border-gray-200">
-        <div className="w-full px-8 py-5 bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-between">
-          <button
-            onClick={() => toggleSection(sectionKey)}
-            className="flex items-center gap-3 text-white font-extrabold text-xl hover:opacity-90 transition-all"
-          >
-            <span>{title}</span>
-            {isExpanded ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
-          </button>
+      <div className="mb-6 bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-gray-200 hover:border-gray-300 transition-all">
+        <div 
+          className="w-full px-6 py-5 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 flex items-center justify-between cursor-pointer transition-all"
+          onClick={() => toggleSection(sectionKey)}
+        >
+          <div className="flex items-center gap-4">
+            <div>
+              <h3 className="text-2xl font-black text-white drop-shadow-md">{title}</h3>
+            </div>
+          </div>
           
-          <button
-            onClick={() => toggleAiInsight(sectionKey)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all shadow-md ${
-              showAiInsight 
-                ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300' 
-                : 'bg-white text-purple-600 hover:bg-gray-100'
-            }`}
-          >
-            <Sparkles className="w-5 h-5" />
-            <span>AI</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleAiInsight(sectionKey);
+              }}
+              className={`p-2.5 rounded-xl transition-all shadow-lg ${
+                showAiInsight 
+                  ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300' 
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+            </button>
+            <div className="bg-white/20 rounded-full p-2">
+              {isExpanded ? (
+                <ChevronUp className="w-6 h-6 text-white" />
+              ) : (
+                <ChevronDown className="w-6 h-6 text-white" />
+              )}
+            </div>
+          </div>
         </div>
         
         {/* AI 인사이트 영역 */}
-        {showAiInsight && (
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-t-2 border-yellow-300 p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex-shrink-0 bg-yellow-400 rounded-full p-2">
-                <Sparkles className="w-6 h-6 text-gray-900" />
+        {isExpanded && showAiInsight && (
+          <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-pink-50 p-8 border-b-4 border-yellow-300">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-3 shadow-lg">
+                <Sparkles className="w-7 h-7 text-gray-900" />
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">AI 인사이트</h3>
-                <p className="text-sm text-gray-600">데이터 기반 분석 및 권장사항</p>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              {generateAiInsight(sectionKey, items)?.map((insight, idx) => (
-                <div 
-                  key={idx}
-                  className="bg-white rounded-lg p-4 shadow-sm border border-yellow-200"
-                >
-                  <p className="text-base text-gray-800 leading-relaxed">{insight}</p>
+              <div className="flex-1">
+                <h4 className="text-2xl font-black text-gray-900 mb-4 bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">🤖 AI 분석 결과</h4>
+                <div className="space-y-3">
+                  {generateAiInsight(sectionKey, items)?.map((insight, idx) => (
+                    <div 
+                      key={idx}
+                      className="bg-white rounded-xl p-5 shadow-lg border-l-4 border-yellow-500 hover:shadow-xl transition-shadow"
+                    >
+                      <p className="text-base text-gray-800 leading-relaxed font-medium">{insight}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         )}
         
+        {/* 테이블 */}
         {isExpanded && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-extrabold text-gray-900 uppercase tracking-wider sticky left-0 bg-gray-100 z-10">
-                    구분
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-extrabold text-orange-900 uppercase tracking-wider bg-orange-50">
-                    11월<br/>매출목표<br/>(억원)
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
-                    Actual<br/>MTD<br/>(억원)
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-extrabold text-gray-700 uppercase tracking-wider bg-blue-50">
-                    LY<br/>Actual<br/>(억원)
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-extrabold text-blue-900 uppercase tracking-wider bg-blue-50">
-                    전년비<br/>(%)
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
-                    Sales<br/>FCST<br/>(억원)
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-extrabold text-purple-900 uppercase tracking-wider bg-purple-50">
-                    예상<br/>마감율<br/>(%)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {displayItems.map((item, index) => {
-                  const isTotal = item.name?.includes('TTL') || item.name?.includes('SUM') || item.name?.includes('합계');
-                  
-                  // 11월 매출목표 (target은 연간이지만, 11월 목표로 사용)
-                  // 실제로는 item.novemberTarget이 있을 수도 있지만, 일단 target 사용
-                  const novemberTarget = item.novemberTarget || item.target || 0;
-                  
-                  // Actual MTD (11월 현재까지 실적)
-                  const actualMTD = item.actualMTD || item.periodPerformance || 0;
-                  
-                  // LY Actual (작년 11월 실적)
-                  const lyActual = item.lyActual || item.lastYearPeriod || item.lastYear || 0;
-                  
-                  // 전년비 = ((Actual MTD - LY Actual) / LY Actual) × 100
-                  const growthRate = lyActual > 0 ? Math.round(((actualMTD - lyActual) / lyActual) * 100) : 0;
-                  
-                  // Sales FCST (예상마감)
-                  const salesFCST = item.forecast || item.salesFCST || 0;
-                  
-                  // 예상마감율 = (Sales FCST / 11월 매출목표) × 100
-                  const forecastRate = novemberTarget > 0 ? Math.round((salesFCST / novemberTarget) * 100) : 0;
-
-                  return (
-                    <tr 
-                      key={index} 
-                      className={`hover:bg-blue-50 transition-colors ${
-                        isTotal ? 'bg-gradient-to-r from-blue-100 to-blue-50 font-bold border-t-2 border-b-2 border-blue-200' : ''
-                      }`}
-                    >
-                      <td className={`px-4 py-3 whitespace-nowrap sticky left-0 bg-white ${isTotal ? 'text-sm font-bold text-gray-900 bg-blue-50' : 'text-sm text-gray-800'}`}>
-                        {isTotal ? '📊 ' : ''}{item.name}
-                      </td>
-                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-orange-50 ${isTotal ? 'text-sm font-bold text-orange-800' : 'text-sm text-gray-700'}`}>
-                        {formatBillion(novemberTarget)}
-                      </td>
-                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-blue-50 ${isTotal ? 'text-sm font-bold text-blue-800' : 'text-sm font-semibold text-blue-700'}`}>
-                        {formatBillion(actualMTD)}
-                      </td>
-                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-blue-50 ${isTotal ? 'text-sm font-bold text-gray-700' : 'text-sm text-gray-600'}`}>
-                        {formatBillion(lyActual)}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-center bg-blue-50">
-                        <span className={`text-sm font-bold ${getGrowthColor(growthRate)}`}>
-                          {growthRate >= 0 ? '+' : ''}{formatPercent(growthRate)}
-                        </span>
-                      </td>
-                      <td className={`px-3 py-3 whitespace-nowrap text-right bg-purple-50 ${isTotal ? 'text-sm font-bold text-purple-800' : 'text-sm font-semibold text-purple-700'}`}>
-                        {formatBillion(salesFCST)}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-center bg-purple-50">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${getAchievementColor(forecastRate)}`}>
-                          {formatPercent(forecastRate)}
-                        </span>
-                      </td>
+          <div className="p-3 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-blue-50">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-2 border-gray-200">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="min-w-full">
+                  <thead className="bg-gradient-to-r from-purple-100 to-blue-100">
+                    <tr>
+                      <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs sm:text-sm font-bold text-gray-800 border-r-2 border-purple-300 sticky left-0 bg-gradient-to-r from-purple-100 to-blue-100 z-10">
+                        구분
+                      </th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[10px] sm:text-xs font-semibold text-orange-900 border-r-2 border-purple-300 whitespace-nowrap">
+                        <span className="hidden sm:inline">11월<br/>매출목표<br/>(억원)</span>
+                        <span className="sm:hidden">목표</span>
+                      </th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[10px] sm:text-xs font-semibold text-blue-900 border-r border-purple-200 whitespace-nowrap">
+                        <span className="hidden sm:inline">Actual<br/>MTD<br/>(억원)</span>
+                        <span className="sm:hidden">실적</span>
+                      </th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[10px] sm:text-xs font-semibold text-gray-700 border-r border-purple-200 whitespace-nowrap">
+                        <span className="hidden sm:inline">LY<br/>Actual<br/>(억원)</span>
+                        <span className="sm:hidden">전년</span>
+                      </th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[10px] sm:text-xs font-semibold text-blue-900 border-r border-purple-200 whitespace-nowrap">
+                        전년비<br/>(%)
+                      </th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[10px] sm:text-xs font-semibold text-purple-900 border-r-2 border-purple-300 whitespace-nowrap">
+                        <span className="hidden sm:inline">Sales<br/>FCST<br/>(억원)</span>
+                        <span className="sm:hidden">예상</span>
+                      </th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-2.5 text-center text-[10px] sm:text-xs font-semibold text-purple-900 whitespace-nowrap">
+                        <span className="hidden sm:inline">예상<br/>마감율<br/>(%)</span>
+                        <span className="sm:hidden">마감율</span>
+                      </th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-purple-100">
+                    {displayItems.map((item, index) => {
+                      const isTotal = item.name?.includes('TTL') || item.name?.includes('SUM') || item.name?.includes('합계');
+                      
+                      // 11월 매출목표 (target은 연간이지만, 11월 목표로 사용)
+                      // 실제로는 item.novemberTarget이 있을 수도 있지만, 일단 target 사용
+                      const novemberTarget = item.novemberTarget || item.target || 0;
+                      
+                      // Actual MTD (11월 현재까지 실적)
+                      const actualMTD = item.actualMTD || item.periodPerformance || 0;
+                      
+                      // LY Actual (작년 11월 실적)
+                      const lyActual = item.lyActual || item.lastYearPeriod || item.lastYear || 0;
+                      
+                      // 전년비 = ((Actual MTD - LY Actual) / LY Actual) × 100
+                      const growthRate = lyActual > 0 ? Math.round(((actualMTD - lyActual) / lyActual) * 100) : 0;
+                      
+                      // Sales FCST (예상마감)
+                      const salesFCST = item.forecast || item.salesFCST || 0;
+                      
+                      // 예상마감율 = (Sales FCST / 11월 매출목표) × 100
+                      const forecastRate = novemberTarget > 0 ? Math.round((salesFCST / novemberTarget) * 100) : 0;
+
+                      return (
+                        <tr 
+                          key={index} 
+                          className={`${isTotal ? 'bg-gradient-to-r from-purple-200 to-blue-200 font-semibold text-gray-900' : 'hover:bg-purple-50'} transition-colors`}
+                        >
+                          <td className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-gray-900 border-r-2 border-purple-200 ${isTotal ? 'bg-purple-100' : ''} sticky left-0 bg-white z-10`}>
+                            {isTotal ? '📊 ' : ''}{item.name}
+                          </td>
+                          <td className={`px-1.5 sm:px-2.5 py-1.5 sm:py-2.5 text-[10px] sm:text-xs text-right bg-orange-50/50 border-r border-purple-100 ${isTotal ? 'font-bold text-orange-800' : 'text-gray-700'} whitespace-nowrap`}>
+                            {formatBillion(novemberTarget)}
+                          </td>
+                          <td className={`px-1.5 sm:px-2.5 py-1.5 sm:py-2.5 text-[10px] sm:text-xs text-right bg-blue-50/50 border-r border-purple-100 ${isTotal ? 'font-bold text-blue-800' : 'font-semibold text-blue-700'} whitespace-nowrap`}>
+                            {formatBillion(actualMTD)}
+                          </td>
+                          <td className={`px-1.5 sm:px-2.5 py-1.5 sm:py-2.5 text-[10px] sm:text-xs text-right bg-blue-50/50 border-r border-purple-100 ${isTotal ? 'font-bold text-gray-700' : 'text-gray-600'} whitespace-nowrap`}>
+                            {formatBillion(lyActual)}
+                          </td>
+                          <td className={`px-1.5 sm:px-2.5 py-1.5 sm:py-2.5 text-[10px] sm:text-xs text-center bg-blue-50/50 border-r border-purple-100 ${isTotal ? 'font-bold' : ''} whitespace-nowrap`}>
+                            <span className={`${getGrowthColor(growthRate)}`}>
+                              {growthRate >= 0 ? '+' : ''}{formatPercent(growthRate)}
+                            </span>
+                          </td>
+                          <td className={`px-1.5 sm:px-2.5 py-1.5 sm:py-2.5 text-[10px] sm:text-xs text-right bg-purple-50/50 border-r-2 border-purple-200 ${isTotal ? 'font-bold text-purple-800' : 'font-semibold text-purple-700'} whitespace-nowrap`}>
+                            {formatBillion(salesFCST)}
+                          </td>
+                          <td className={`px-2.5 py-2.5 text-xs text-center bg-purple-50/50 ${isTotal ? 'font-bold' : ''}`}>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getAchievementColor(forecastRate)}`}>
+                              {formatPercent(forecastRate)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -334,9 +352,10 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
       insights.push(`⚠️ 11월 전년 대비 ${monthlyGrowth.toFixed(1)}%로 큰 폭 감소했습니다. 즉각적인 대응이 필요합니다.`);
     }
 
-    // 46주차 분석
+    // 주차별 분석 (동적 주차 정보 사용)
     const weeklyGrowth = (totalArea.weeklyGrowthRate || 0) * 100;
-    insights.push(`📅 46주차 전년 대비 ${weeklyGrowth >= 0 ? '+' : ''}${weeklyGrowth.toFixed(1)}%를 기록했습니다.`);
+    const weekInfo = weeklyMeetingData?.period || '주차';
+    insights.push(`📅 ${weekInfo} 전년 대비 ${weeklyGrowth >= 0 ? '+' : ''}${weeklyGrowth.toFixed(1)}%를 기록했습니다.`);
 
     // 상권별 최고 실적
     const bestArea = [...rawData.상권].slice(1).reduce((max, item) => {
@@ -389,10 +408,13 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
                 e.stopPropagation();
                 toggleAiInsight('weekly-meeting');
               }}
-              className="flex items-center gap-2 px-5 py-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-50 transition-all shadow-lg text-sm font-bold"
+              className={`p-2.5 rounded-xl transition-all shadow-lg ${
+                showAiInsight 
+                  ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300' 
+                  : 'bg-white/20 text-white hover:bg-white/30'
+              }`}
             >
               <Sparkles className="w-5 h-5" />
-              AI 인사이트
             </button>
             <div className="bg-white/20 rounded-full p-2">
               {isExpanded ? (
@@ -444,80 +466,80 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
                   <table className="min-w-full">
                     <thead className="bg-gradient-to-r from-blue-100 to-cyan-100">
                       <tr>
-                        <th className="px-4 py-4 text-center text-xs font-black text-gray-800 uppercase border-r-2 border-blue-300" rowSpan={2}>
+                        <th className="px-4 py-3 text-center text-sm font-bold text-gray-800 border-r-2 border-blue-300" rowSpan={2}>
                           상권
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-black text-blue-900 uppercase border-r-2 border-blue-300" colSpan={6}>
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-blue-900 border-r-2 border-blue-300" colSpan={6}>
                           📊 25년 누계
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-black text-blue-900 uppercase border-r-2 border-blue-300" colSpan={8}>
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-blue-900 border-r-2 border-blue-300" colSpan={8}>
                           📅 11월
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-black text-blue-900 uppercase" colSpan={4}>
-                          📌 46주차
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-blue-900" colSpan={4}>
+                          📌 {weeklyMeetingData.period?.split(' ')[1] || '주차'}
                         </th>
                       </tr>
                       <tr>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-blue-50 border-r border-blue-200">목표</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-blue-50 border-r border-blue-200">금년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-blue-50 border-r border-blue-200">전년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-blue-50 border-r border-blue-200">성장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-blue-50 border-r border-blue-200">달성율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-blue-50 border-r-2 border-blue-300">기존점 신장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-cyan-50 border-r border-blue-200">목표</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-cyan-50 border-r border-blue-200">금년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-cyan-50 border-r border-blue-200">전년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-cyan-50 border-r border-blue-200">성장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-cyan-50 border-r border-blue-200">달성율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-cyan-50 border-r border-blue-200">기존점 신장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-cyan-50 border-r border-blue-200">순수 신장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-indigo-700 bg-indigo-50 border-r-2 border-blue-300">단체비중</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-blue-200">금년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-blue-200">전년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-blue-200">성장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-indigo-700 bg-indigo-50">단체비중</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-blue-50 border-r border-blue-200">목표</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-blue-50 border-r border-blue-200">금년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-blue-50 border-r border-blue-200">전년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-blue-50 border-r border-blue-200">성장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-blue-50 border-r border-blue-200">달성율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-blue-50 border-r-2 border-blue-300">기존점<br/>신장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-cyan-50 border-r border-blue-200">목표</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-cyan-50 border-r border-blue-200">금년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-cyan-50 border-r border-blue-200">전년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-cyan-50 border-r border-blue-200">성장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-cyan-50 border-r border-blue-200">달성율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-cyan-50 border-r border-blue-200">기존점<br/>신장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-cyan-50 border-r border-blue-200">순수<br/>신장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-indigo-700 bg-indigo-50 border-r-2 border-blue-300">단체비중</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-blue-200">금년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-blue-200">전년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-blue-200">성장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-indigo-700 bg-indigo-50">단체비중</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y-2 divide-blue-100">
+                    <tbody className="divide-y divide-blue-100">
                       {weeklyMeetingData.rawData.상권.map((item: any, idx: number) => (
-                        <tr key={idx} className={`${item.name === '합계' ? 'bg-gradient-to-r from-blue-200 to-cyan-200 font-black text-gray-900' : 'hover:bg-blue-50'} transition-colors`}>
-                          <td className="px-4 py-4 text-sm font-bold text-gray-900 border-r-2 border-blue-200">{item.name}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-blue-50/50 border-r border-blue-100">{item.yearlyTarget?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-blue-900 font-semibold bg-blue-50/50 border-r border-blue-100">{item.yearlyActual?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-blue-50/50 border-r border-blue-100">{item.yearlyLastYear?.toLocaleString() || '-'}</td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-blue-50/50 border-r border-blue-100 ${(item.yearlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <tr key={idx} className={`${item.name === '합계' ? 'bg-gradient-to-r from-blue-200 to-cyan-200 font-semibold text-gray-900' : 'hover:bg-blue-50'} transition-colors`}>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900 border-r-2 border-blue-200">{item.name}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-blue-50/50 border-r border-blue-100">{item.yearlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-blue-900 font-semibold bg-blue-50/50 border-r border-blue-100">{item.yearlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-blue-50/50 border-r border-blue-100">{item.yearlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-blue-50/50 border-r border-blue-100 ${(item.yearlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.yearlyGrowthRate !== undefined ? `${(item.yearlyGrowthRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-blue-50/50 border-r border-blue-100 ${(item.yearlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-blue-50/50 border-r border-blue-100 ${(item.yearlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
                             {item.yearlyAchievementRate !== undefined ? `${(item.yearlyAchievementRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-blue-50/50 border-r-2 border-blue-200 ${(item.yearlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-blue-50/50 border-r-2 border-blue-200 ${(item.yearlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.yearlyExistingGrowth !== undefined ? `${(item.yearlyExistingGrowth * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-cyan-50/50 border-r border-blue-100">{item.monthlyTarget?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-cyan-900 font-semibold bg-cyan-50/50 border-r border-blue-100">{item.monthlyActual?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-cyan-50/50 border-r border-blue-100">{item.monthlyLastYear?.toLocaleString() || '-'}</td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-cyan-50/50 border-r border-blue-100">{item.monthlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-cyan-900 font-semibold bg-cyan-50/50 border-r border-blue-100">{item.monthlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-cyan-50/50 border-r border-blue-100">{item.monthlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.monthlyGrowthRate !== undefined ? `${(item.monthlyGrowthRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
                             {item.monthlyAchievementRate !== undefined ? `${(item.monthlyAchievementRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.monthlyExistingGrowth !== undefined ? `${(item.monthlyExistingGrowth * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyPureGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-cyan-50/50 border-r border-blue-100 ${(item.monthlyPureGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.monthlyPureGrowth !== undefined ? `${(item.monthlyPureGrowth * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-indigo-700 font-black bg-indigo-50/50 border-r-2 border-blue-200">
+                          <td className="px-2.5 py-2.5 text-xs text-right text-indigo-700 font-semibold bg-indigo-50/50 border-r-2 border-blue-200">
                             {item.monthlyGroupRatio !== undefined ? `${(item.monthlyGroupRatio * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-purple-900 font-semibold bg-purple-50/50 border-r border-blue-100">{item.weeklyActual?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-purple-50/50 border-r border-blue-100">{item.weeklyLastYear?.toLocaleString() || '-'}</td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-purple-50/50 border-r border-blue-100 ${(item.weeklyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-purple-900 font-semibold bg-purple-50/50 border-r border-blue-100">{item.weeklyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-purple-50/50 border-r border-blue-100">{item.weeklyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-purple-50/50 border-r border-blue-100 ${(item.weeklyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.weeklyGrowthRate !== undefined ? `${(item.weeklyGrowthRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-indigo-700 font-black bg-indigo-50/50">
+                          <td className="px-2.5 py-2.5 text-xs text-right text-indigo-700 font-semibold bg-indigo-50/50">
                             {item.weeklyGroupRatio !== undefined ? `${(item.weeklyGroupRatio * 100).toFixed(1)}%` : '-'}
                           </td>
                         </tr>
@@ -541,80 +563,80 @@ export default function SummaryTable({ data, weeklyMeetingData }: SummaryTablePr
                   <table className="min-w-full">
                     <thead className="bg-gradient-to-r from-purple-100 to-pink-100">
                       <tr>
-                        <th className="px-4 py-4 text-center text-xs font-black text-gray-800 uppercase border-r-2 border-purple-300" rowSpan={2}>
+                        <th className="px-4 py-3 text-center text-sm font-bold text-gray-800 border-r-2 border-purple-300" rowSpan={2}>
                           채널
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-black text-purple-900 uppercase border-r-2 border-purple-300" colSpan={6}>
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-900 border-r-2 border-purple-300" colSpan={6}>
                           📊 25년 누계
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-black text-purple-900 uppercase border-r-2 border-purple-300" colSpan={8}>
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-900 border-r-2 border-purple-300" colSpan={8}>
                           📅 11월
                         </th>
-                        <th className="px-4 py-4 text-center text-sm font-black text-purple-900 uppercase" colSpan={4}>
-                          📌 46주차
+                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-purple-900" colSpan={4}>
+                          📌 {weeklyMeetingData.period?.split(' ')[1] || '주차'}
                         </th>
                       </tr>
                       <tr>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-purple-200">목표</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-purple-200">금년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-purple-200">전년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-purple-200">성장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r border-purple-200">달성율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-purple-50 border-r-2 border-purple-300">기존점 신장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-pink-50 border-r border-purple-200">목표</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-pink-50 border-r border-purple-200">금년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-pink-50 border-r border-purple-200">전년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-pink-50 border-r border-purple-200">성장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-pink-50 border-r border-purple-200">달성율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-pink-50 border-r border-purple-200">기존점 신장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-pink-50 border-r border-purple-200">순수 신장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-indigo-700 bg-indigo-50 border-r-2 border-purple-300">단체비중</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-rose-50 border-r border-purple-200">금년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-rose-50 border-r border-purple-200">전년</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 bg-rose-50 border-r border-purple-200">성장율</th>
-                        <th className="px-3 py-3 text-center text-xs font-bold text-indigo-700 bg-indigo-50">단체비중</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-purple-200">목표</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-purple-200">금년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-purple-200">전년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-purple-200">성장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r border-purple-200">달성율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-purple-50 border-r-2 border-purple-300">기존점<br/>신장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-pink-50 border-r border-purple-200">목표</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-pink-50 border-r border-purple-200">금년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-pink-50 border-r border-purple-200">전년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-pink-50 border-r border-purple-200">성장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-pink-50 border-r border-purple-200">달성율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-pink-50 border-r border-purple-200">기존점<br/>신장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-pink-50 border-r border-purple-200">순수<br/>신장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-indigo-700 bg-indigo-50 border-r-2 border-purple-300">단체비중</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-rose-50 border-r border-purple-200">금년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-rose-50 border-r border-purple-200">전년</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-gray-700 bg-rose-50 border-r border-purple-200">성장율</th>
+                        <th className="px-2.5 py-2 text-center text-xs font-medium text-indigo-700 bg-indigo-50">단체비중</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y-2 divide-purple-100">
+                    <tbody className="divide-y divide-purple-100">
                       {weeklyMeetingData.rawData.채널.map((item: any, idx: number) => (
-                        <tr key={idx} className={`${item.name === '합계' ? 'bg-gradient-to-r from-purple-200 to-pink-200 font-black text-gray-900' : 'hover:bg-purple-50'} transition-colors`}>
-                          <td className="px-4 py-4 text-sm font-bold text-gray-900 border-r-2 border-purple-200">{item.name}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-purple-50/50 border-r border-purple-100">{item.yearlyTarget?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-purple-900 font-semibold bg-purple-50/50 border-r border-purple-100">{item.yearlyActual?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-purple-50/50 border-r border-purple-100">{item.yearlyLastYear?.toLocaleString() || '-'}</td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-purple-50/50 border-r border-purple-100 ${(item.yearlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <tr key={idx} className={`${item.name === '합계' ? 'bg-gradient-to-r from-purple-200 to-pink-200 font-semibold text-gray-900' : 'hover:bg-purple-50'} transition-colors`}>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-900 border-r-2 border-purple-200">{item.name}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-purple-50/50 border-r border-purple-100">{item.yearlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-purple-900 font-semibold bg-purple-50/50 border-r border-purple-100">{item.yearlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-purple-50/50 border-r border-purple-100">{item.yearlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-purple-50/50 border-r border-purple-100 ${(item.yearlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.yearlyGrowthRate !== undefined ? `${(item.yearlyGrowthRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-purple-50/50 border-r border-purple-100 ${(item.yearlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-purple-50/50 border-r border-purple-100 ${(item.yearlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
                             {item.yearlyAchievementRate !== undefined ? `${(item.yearlyAchievementRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-purple-50/50 border-r-2 border-purple-200 ${(item.yearlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-purple-50/50 border-r-2 border-purple-200 ${(item.yearlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.yearlyExistingGrowth !== undefined ? `${(item.yearlyExistingGrowth * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-pink-50/50 border-r border-purple-100">{item.monthlyTarget?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-pink-900 font-semibold bg-pink-50/50 border-r border-purple-100">{item.monthlyActual?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-pink-50/50 border-r border-purple-100">{item.monthlyLastYear?.toLocaleString() || '-'}</td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-pink-50/50 border-r border-purple-100">{item.monthlyTarget?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-pink-900 font-semibold bg-pink-50/50 border-r border-purple-100">{item.monthlyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-pink-50/50 border-r border-purple-100">{item.monthlyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.monthlyGrowthRate !== undefined ? `${(item.monthlyGrowthRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyAchievementRate || 0) >= 0.9 ? 'text-green-600' : 'text-orange-600'}`}>
                             {item.monthlyAchievementRate !== undefined ? `${(item.monthlyAchievementRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyExistingGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.monthlyExistingGrowth !== undefined ? `${(item.monthlyExistingGrowth * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyPureGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-pink-50/50 border-r border-purple-100 ${(item.monthlyPureGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.monthlyPureGrowth !== undefined ? `${(item.monthlyPureGrowth * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-indigo-700 font-black bg-indigo-50/50 border-r-2 border-purple-200">
+                          <td className="px-2.5 py-2.5 text-xs text-right text-indigo-700 font-semibold bg-indigo-50/50 border-r-2 border-purple-200">
                             {item.monthlyGroupRatio !== undefined ? `${(item.monthlyGroupRatio * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-rose-900 font-semibold bg-rose-50/50 border-r border-purple-100">{item.weeklyActual?.toLocaleString() || '-'}</td>
-                          <td className="px-3 py-3 text-sm text-right text-gray-700 bg-rose-50/50 border-r border-purple-100">{item.weeklyLastYear?.toLocaleString() || '-'}</td>
-                          <td className={`px-3 py-3 text-sm text-right font-bold bg-rose-50/50 border-r border-purple-100 ${(item.weeklyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-rose-900 font-semibold bg-rose-50/50 border-r border-purple-100">{item.weeklyActual?.toLocaleString() || '-'}</td>
+                          <td className="px-2.5 py-2.5 text-xs text-right text-gray-700 bg-rose-50/50 border-r border-purple-100">{item.weeklyLastYear?.toLocaleString() || '-'}</td>
+                          <td className={`px-2.5 py-2.5 text-xs text-right font-semibold bg-rose-50/50 border-r border-purple-100 ${(item.weeklyGrowthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {item.weeklyGrowthRate !== undefined ? `${(item.weeklyGrowthRate * 100).toFixed(1)}%` : '-'}
                           </td>
-                          <td className="px-3 py-3 text-sm text-right text-indigo-700 font-black bg-indigo-50/50">
+                          <td className="px-2.5 py-2.5 text-xs text-right text-indigo-700 font-semibold bg-indigo-50/50">
                             {item.weeklyGroupRatio !== undefined ? `${(item.weeklyGroupRatio * 100).toFixed(1)}%` : '-'}
                           </td>
                         </tr>

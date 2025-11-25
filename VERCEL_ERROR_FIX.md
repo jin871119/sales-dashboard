@@ -178,3 +178,6 @@ git init && git add . && git commit -m "Deploy" && vercel --prod --yes
 3. `vercel whoami` 실행 결과
 
 
+
+
+

@@ -24,6 +24,7 @@ export async function GET() {
     const monthlyData = parseMonthlyFromJson(backdataJson);
     const weeklyData = parseWeeklyFromJson(backdataJson);
     const storeByArea = parseStoreByAreaFromJson(backdataJson);
+    const storeDCRate = parseStoreDCRateFromJson(backdataJson);
 
     // 2. ending focast JSON 필수 확인
     const endingFocastJsonPath = join(rootDir, 'public', 'ending-focast.json');
@@ -71,7 +72,32 @@ export async function GET() {
       console.log('사용 가능한 시트:', Object.keys(endingJson.data || {}));
     }
 
-    const data = convertExcelToDashboard(rawData, sheetName, summaryData, monthlyData, weeklyData, storeByArea);
+    // upload 시트에서 KPI 데이터 및 상권별/팀별/유통별 데이터 추출 (우선순위 1)
+    let uploadKpiData = null;
+    let uploadSummaryData = null;
+    const uploadSheetName = getUploadSheetName(endingJson);
+    if (uploadSheetName && endingJson.data?.[uploadSheetName]?.raw) {
+      uploadKpiData = extractKpiFromUploadSheet(endingJson.data[uploadSheetName].raw);
+      uploadSummaryData = extractSummaryDataFromUploadSheet(endingJson.data[uploadSheetName].raw);
+      console.log(`✅ "${uploadSheetName}" upload 시트에서 KPI 및 상권별/팀별/유통별 데이터 추출 완료`);
+    } else {
+      console.log('⚠️  upload 시트를 JSON에서 찾을 수 없습니다.');
+      console.log('사용 가능한 시트:', Object.keys(endingJson.data || {}));
+    }
+
+    // upload 시트의 상권별/팀별/유통별 데이터가 있으면 우선 사용
+    if (uploadSummaryData && (uploadSummaryData.byArea.length > 0 || uploadSummaryData.byTeam.length > 0 || uploadSummaryData.byChannel.length > 0)) {
+      if (!summaryData) {
+        summaryData = { rawData: [] };
+      }
+      // upload 시트 데이터로 덮어쓰기
+      summaryData.byArea = uploadSummaryData.byArea;
+      summaryData.byTeam = uploadSummaryData.byTeam;
+      summaryData.byChannel = uploadSummaryData.byChannel;
+      console.log('✅ upload 시트의 상권별/팀별/유통별 데이터를 summaryData에 반영');
+    }
+    
+    const data = convertExcelToDashboard(rawData, sheetName, summaryData, monthlyData, weeklyData, storeByArea, uploadKpiData, storeDCRate);
     return NextResponse.json(data);
     
   } catch (error) {
@@ -107,6 +133,228 @@ function getSummarySheetName(endingJson: any): string | null {
     name.includes('Summary')
   );
   return found || null;
+}
+
+function getUploadSheetName(endingJson: any): string | null {
+  if (!endingJson?.data) return null;
+  const uploadSheetNames = ['upload', 'Upload', 'UPLOAD', '업로드'];
+  const found = Object.keys(endingJson.data).find(name =>
+    uploadSheetNames.includes(name) ||
+    name.toLowerCase().includes('upload')
+  );
+  return found || null;
+}
+
+/**
+ * "upload" 시트에서 상권별, 팀별, 유통별 데이터 추출
+ */
+function extractSummaryDataFromUploadSheet(uploadSheetRaw: any[][]): {
+  byArea: any[];
+  byTeam: any[];
+  byChannel: any[];
+} {
+  console.log('📊 upload 시트에서 상권별/팀별/유통별 데이터 추출 시작...');
+  
+  const result = {
+    byArea: [] as any[],
+    byTeam: [] as any[],
+    byChannel: [] as any[]
+  };
+  
+  if (!uploadSheetRaw || uploadSheetRaw.length === 0) {
+    console.log('⚠️  upload 시트 데이터가 비어있습니다.');
+    return result;
+  }
+  
+  // 숫자 파싱 헬퍼
+  const parseValue = (val: any): number => {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number') return val;
+    const str = String(val).replace(/[^0-9.-]/g, '');
+    return parseFloat(str) || 0;
+  };
+  
+  // 컬럼 인덱스
+  const 구분ColIndex = 0;      // A열: 구분
+  const 소제목ColIndex = 1;    // B열: 소제목
+  const 매출목표ColIndex = 2;  // C열: 매출목표 (target)
+  const 마감예상ColIndex = 3;  // D열: 마감예상 (sales fcst)
+  const 마감달성율ColIndex = 4; // E열: 마감달성율 (ach%)
+  const 진도실적ColIndex = 7;  // H열: 진도실적 (actual mtd)
+  const 작년실적ColIndex = 8;  // I열: 작년실적 (ly actual)
+  const 진도신장율ColIndex = 9; // J열: 신장율 (진도 신장율, gr)
+  
+  let currentCategory = '';
+  
+  // 모든 행 순회
+  for (let i = 1; i < uploadSheetRaw.length; i++) {
+    const row = uploadSheetRaw[i];
+    if (!row) continue;
+    
+    const 구분값 = String(row[구분ColIndex] || '').trim();
+    const 소제목값 = String(row[소제목ColIndex] || '').trim();
+    
+    // 빈 행이면 스킵
+    if (!구분값 && !소제목값) continue;
+    
+    // 카테고리 변경 감지
+    if (구분값 === '상권') {
+      currentCategory = 'area';
+    } else if (구분값 === 'TEAM') {
+      currentCategory = 'team';
+    } else if (구분값.includes('유통별')) {
+      currentCategory = 'channel';
+    }
+    
+    // SUM 행 또는 데이터 행 처리
+    if (소제목값.toUpperCase() === 'SUM' || (소제목값 && 소제목값 !== '')) {
+      const name = 소제목값 === 'SUM' || 소제목값.toUpperCase() === 'SUM' ? 'SUM' : 소제목값;
+      
+      const target = Math.round(parseValue(row[매출목표ColIndex]));
+      const forecast = Math.round(parseValue(row[마감예상ColIndex]));
+      const actualMTD = Math.round(parseValue(row[진도실적ColIndex]));
+      const lyActual = Math.round(parseValue(row[작년실적ColIndex]));
+      
+      const 마감달성율 = parseValue(row[마감달성율ColIndex]);
+      const forecastAchievementRate = Math.round(마감달성율 * 100);
+      
+      const 진도신장율 = parseValue(row[진도신장율ColIndex]);
+      const periodGrowthRate = Math.round(진도신장율 * 100);
+      
+      const item = {
+        name,
+        target,
+        periodPerformance: actualMTD,
+        lastYearPeriod: lyActual,
+        periodGrowthRate,
+        forecast,
+        forecastAchievementRate,
+        novemberTarget: target,
+        actualMTD: actualMTD,
+        lyActual: lyActual,
+        salesFCST: forecast
+      };
+      
+      // SUM 행이 아니고 데이터가 있는 경우만 추가
+      if (name !== 'SUM' && (target > 0 || actualMTD > 0 || forecast > 0)) {
+        if (currentCategory === 'area') {
+          result.byArea.push(item);
+        } else if (currentCategory === 'team') {
+          result.byTeam.push(item);
+        } else if (currentCategory === 'channel') {
+          result.byChannel.push(item);
+        }
+      } else if (name === 'SUM' && currentCategory) {
+        // SUM 행은 맨 앞에 추가
+        if (currentCategory === 'area') {
+          result.byArea.unshift(item);
+        } else if (currentCategory === 'team') {
+          result.byTeam.unshift(item);
+        } else if (currentCategory === 'channel') {
+          result.byChannel.unshift(item);
+        }
+      }
+    }
+  }
+  
+  console.log(`✅ upload 시트 데이터 추출 완료: 상권별 ${result.byArea.length}건, 팀별 ${result.byTeam.length}건, 유통별 ${result.byChannel.length}건`);
+  
+  return result;
+}
+
+/**
+ * "upload" 시트에서 KPI 데이터 추출
+ * 실제 구조:
+ * A열: 구분
+ * B열: 소제목
+ * C열: 매출목표 (target)
+ * D열: 마감예상 (sales fcst)
+ * E열: 마감달성율 (ach%)
+ * F열: 작년 월마감
+ * G열: 신장율 (마감 신장율)
+ * H열: 진도실적 (actual mtd)
+ * I열: 작년실적 (ly actual)
+ * J열: 신장율 (진도 신장율)
+ */
+function extractKpiFromUploadSheet(uploadSheetRaw: any[][]): {
+  salesTarget: number;
+  periodPerformance: number;
+  lastYearPeriod: number;
+  periodGrowthRate: number;
+  forecast: number;
+  forecastAchievementRate: number;
+} {
+  console.log('📊 upload 시트에서 KPI 데이터 추출 시작...');
+  
+  const result = {
+    salesTarget: 0,
+    periodPerformance: 0,
+    lastYearPeriod: 0,
+    periodGrowthRate: 0,
+    forecast: 0,
+    forecastAchievementRate: 0
+  };
+  
+  if (!uploadSheetRaw || uploadSheetRaw.length === 0) {
+    console.log('⚠️  upload 시트 데이터가 비어있습니다.');
+    return result;
+  }
+  
+  // 숫자 파싱 헬퍼
+  const parseValue = (val: any): number => {
+    if (val == null || val === '') return 0;
+    if (typeof val === 'number') return val;
+    const str = String(val).replace(/[^0-9.-]/g, '');
+    return parseFloat(str) || 0;
+  };
+  
+  // 실제 컬럼 인덱스 (분석 결과 기반)
+  const 구분ColIndex = 0;      // A열: 구분
+  const 소제목ColIndex = 1;    // B열: 소제목
+  const 매출목표ColIndex = 2;  // C열: 매출목표 (target)
+  const 마감예상ColIndex = 3;  // D열: 마감예상 (sales fcst)
+  const 마감달성율ColIndex = 4; // E열: 마감달성율 (ach%)
+  const 진도실적ColIndex = 7;  // H열: 진도실적 (actual mtd)
+  const 작년실적ColIndex = 8;  // I열: 작년실적 (ly actual)
+  const 진도신장율ColIndex = 9; // J열: 신장율 (진도 신장율, gr)
+  
+  // 첫 번째 SUM 행 찾기 (상권 SUM 행, 인덱스 1)
+  for (let i = 1; i < Math.min(20, uploadSheetRaw.length); i++) {
+    const row = uploadSheetRaw[i];
+    if (!row) continue;
+    
+    const 구분값 = String(row[구분ColIndex] || '').trim();
+    const 소제목값 = String(row[소제목ColIndex] || '').trim().toUpperCase();
+    
+    // 상권 SUM 행 찾기 (첫 번째 SUM 행)
+    if (소제목값 === 'SUM' && 구분값 === '상권') {
+      result.salesTarget = Math.round(parseValue(row[매출목표ColIndex])); // C열: 매출목표
+      result.forecast = Math.round(parseValue(row[마감예상ColIndex])); // D열: 마감예상
+      result.periodPerformance = Math.round(parseValue(row[진도실적ColIndex])); // H열: 진도실적
+      result.lastYearPeriod = Math.round(parseValue(row[작년실적ColIndex])); // I열: 작년실적
+      
+      // 마감달성율 (E열): 1.02 = 102%이므로 항상 100 곱하기
+      const 마감달성율 = parseValue(row[마감달성율ColIndex]);
+      result.forecastAchievementRate = Math.round(마감달성율 * 100);
+      
+      // 진도 신장율 (J열): 소수면 100 곱하기 (0.08 = 8%)
+      const 진도신장율 = parseValue(row[진도신장율ColIndex]);
+      result.periodGrowthRate = Math.round(진도신장율 * 100);
+      
+      console.log('✅ 상권 SUM 행에서 KPI 추출:', {
+        salesTarget: result.salesTarget.toLocaleString(),
+        forecast: result.forecast.toLocaleString(),
+        periodPerformance: result.periodPerformance.toLocaleString(),
+        lastYearPeriod: result.lastYearPeriod.toLocaleString(),
+        periodGrowthRate: result.periodGrowthRate + '%',
+        forecastAchievementRate: result.forecastAchievementRate + '%'
+      });
+      
+      break;
+    }
+  }
+  
+  return result;
 }
 
 /**
@@ -555,6 +803,384 @@ function parseStoreByAreaFromJson(jsonData: any): any {
 }
 
 /**
+ * JSON 데이터에서 매장별 DC율 데이터 파싱 (DC율 시트 기반)
+ * 실판가, 택가, DC율, 전년DC율, 전년대비차이 포함
+ */
+function parseStoreDCRateFromJson(jsonData: any): any[] {
+  try {
+    console.log('📊 매장별 DC율 데이터 파싱 시작 (상권구분 + DC율 시트 통합)...');
+    console.log('📋 backdata.json의 모든 시트:', Object.keys(jsonData.data || {}));
+    
+    const allSheetNames = Object.keys(jsonData.data || {});
+    
+    // 1. "상권구분" 시트 찾기 (상권별 매장 목록)
+    const areaSheetName = allSheetNames.find((name: string) => {
+      return name.includes('상권구분') || 
+             name.includes('상권') || 
+             name.includes('매장') ||
+             name.includes('Store') ||
+             name.includes('store');
+    });
+    
+    if (!areaSheetName || !jsonData.data[areaSheetName]) {
+      console.log('⚠️  상권구분 시트를 찾을 수 없습니다.');
+      console.log('📋 사용 가능한 시트:', allSheetNames);
+      return [];
+    }
+    
+    console.log(`✅ 상권구분 시트 발견: "${areaSheetName}"`);
+    
+    // 2. "DC율" 시트 찾기 (매장별 실적 데이터)
+    const dcSheetName = allSheetNames.find((name: string) => {
+      const nameLower = name.toLowerCase();
+      return name.includes('DC율') || 
+             name.includes('DC') || 
+             nameLower.includes('dc') || 
+             name.includes('할인') ||
+             name.includes('dc율') ||
+             name.includes('DCRate') ||
+             name.includes('dcrate');
+    });
+    
+    if (!dcSheetName || !jsonData.data[dcSheetName]) {
+      console.log('⚠️  DC율 시트를 찾을 수 없습니다.');
+      console.log('📋 사용 가능한 시트:', allSheetNames);
+      console.log('💡 "DC율", "DC", "dc", "할인" 키워드가 포함된 시트를 찾습니다.');
+      return [];
+    }
+    
+    console.log(`✅ DC율 시트 발견: "${dcSheetName}"`);
+    
+    // 3. 상권구분 시트에서 상권별 매장 목록 읽기
+    const areaRawData = jsonData.data[areaSheetName].raw || jsonData.data[areaSheetName];
+    const storeAreaMap = new Map<string, string>(); // 매장명 -> 상권구분
+    
+    if (areaRawData && Array.isArray(areaRawData) && areaRawData.length > 0) {
+      console.log(`📊 상권구분 시트 파싱 시작: ${areaRawData.length}행`);
+      
+      // 헤더 행 찾기
+      let areaHeaderRowIndex = -1;
+      let areaStoreNameColIndex = -1;
+      let areaAreaColIndex = -1;
+      
+      for (let i = 0; i < Math.min(10, areaRawData.length); i++) {
+        const row = areaRawData[i];
+        if (!row || !Array.isArray(row)) continue;
+        
+        for (let j = 0; j < row.length; j++) {
+          const cell = String(row[j] || '').trim();
+          if (cell.includes('매장명') || cell.includes('매장') || cell.includes('Store') || cell.includes('store')) {
+            areaStoreNameColIndex = j;
+          }
+          if (cell.includes('상권') || cell.includes('Area') || cell.includes('구분') || cell.includes('지역')) {
+            areaAreaColIndex = j;
+          }
+        }
+        
+        if (areaStoreNameColIndex >= 0 && areaAreaColIndex >= 0) {
+          areaHeaderRowIndex = i;
+          break;
+        }
+      }
+      
+      if (areaStoreNameColIndex >= 0 && areaAreaColIndex >= 0) {
+        // 데이터 행 파싱
+        for (let i = (areaHeaderRowIndex >= 0 ? areaHeaderRowIndex + 1 : 1); i < areaRawData.length; i++) {
+          const row = areaRawData[i];
+          if (!row || !Array.isArray(row)) continue;
+          
+          const storeName = String(row[areaStoreNameColIndex] || '').trim();
+          const area = String(row[areaAreaColIndex] || '').trim();
+          
+          if (storeName && area && storeName !== '매장명' && area !== '상권구분' && storeName !== '' && area !== '') {
+            storeAreaMap.set(storeName, area);
+          }
+        }
+        console.log(`✅ 상권구분 매핑 완료: ${storeAreaMap.size}개 매장`);
+      } else {
+        console.log('⚠️  상권구분 시트에서 매장명 또는 상권구분 컬럼을 찾을 수 없습니다.');
+      }
+    }
+    
+    // 4. DC율 시트에서 매장별 실적 데이터 읽기
+    const dcRawData = jsonData.data[dcSheetName].raw || jsonData.data[dcSheetName];
+    
+    if (!dcRawData || !Array.isArray(dcRawData) || dcRawData.length === 0) {
+      console.log('⚠️  DC율 시트 데이터가 비어있습니다.');
+      return [];
+    }
+    
+    console.log(`📊 DC율 시트 데이터 파싱 시작: ${dcRawData.length}행`);
+    
+    // 처음 5행 출력하여 구조 확인
+    console.log('📋 DC율 시트 처음 5행 미리보기:');
+    for (let i = 0; i < Math.min(5, dcRawData.length); i++) {
+      const row = dcRawData[i];
+      if (row && Array.isArray(row)) {
+        console.log(`   행 ${i + 1}:`, row.slice(0, 10).map((cell, idx) => `[${String.fromCharCode(65 + idx)}]${cell}`).join(', '));
+      }
+    }
+    
+    // DC율 시트 헤더 행 찾기
+    let dcHeaderRowIndex = -1;
+    let dcStoreNameColIndex = -1;
+    let realPriceColIndex = -1;  // 실판가 (25년)
+    let tagPriceColIndex = -1;   // 택가 (25년)
+    let lastYearRealPriceColIndex = -1;  // 실판가 (24년)
+    let lastYearTagPriceColIndex = -1;   // 택가 (24년)
+    let dcRateColIndex = -1;      // DC율
+    let lastYearDcRateColIndex = -1; // 전년DC율
+    let differenceColIndex = -1;  // 전년대비차이
+    
+    // 헤더 행 찾기 (처음 10행까지 검색)
+    for (let i = 0; i < Math.min(10, dcRawData.length); i++) {
+      const row = dcRawData[i];
+      if (!row || !Array.isArray(row)) continue;
+      
+      let foundCount = 0;
+      for (let j = 0; j < row.length; j++) {
+        const cell = String(row[j] || '').trim();
+        const cellLower = cell.toLowerCase();
+        
+        if (cell.includes('매장명') || cell.includes('매장') || cell.includes('Store') || cell.includes('store')) {
+          dcStoreNameColIndex = j;
+          foundCount++;
+        }
+        // 25년 실판가/택가
+        if ((cell.includes('실판가') || cellLower.includes('real') || cellLower.includes('actual') || cell.includes('판가')) && !cell.includes('24') && !cell.includes('전년')) {
+          realPriceColIndex = j;
+          foundCount++;
+        }
+        if ((cell.includes('택가') || cellLower.includes('tag') || cellLower.includes('list') || cell.includes('정가')) && !cell.includes('24') && !cell.includes('전년')) {
+          tagPriceColIndex = j;
+          foundCount++;
+        }
+        // 24년 실판가/택가 - E열(인덱스 4), F열(인덱스 5) 확인
+        if (j === 4 && (cell.includes('실판가') || cellLower.includes('real') || cellLower.includes('actual') || cell.includes('판가') || cell.includes('24'))) {
+          lastYearRealPriceColIndex = j;
+          foundCount++;
+        }
+        if (j === 5 && (cell.includes('택가') || cellLower.includes('tag') || cellLower.includes('list') || cell.includes('정가') || cell.includes('24'))) {
+          lastYearTagPriceColIndex = j;
+          foundCount++;
+        }
+        // E열, F열이 아니더라도 24년 키워드가 있으면 사용
+        if (lastYearRealPriceColIndex < 0 && (cell.includes('실판가') || cellLower.includes('real') || cellLower.includes('actual') || cell.includes('판가')) && (cell.includes('24') || cell.includes('전년'))) {
+          lastYearRealPriceColIndex = j;
+          foundCount++;
+        }
+        if (lastYearTagPriceColIndex < 0 && (cell.includes('택가') || cellLower.includes('tag') || cellLower.includes('list') || cell.includes('정가')) && (cell.includes('24') || cell.includes('전년'))) {
+          lastYearTagPriceColIndex = j;
+          foundCount++;
+        }
+        if ((cell.includes('DC율') || cell.includes('DC') || cell.includes('할인율')) && !cell.includes('전년') && !cell.includes('24')) {
+          dcRateColIndex = j;
+          foundCount++;
+        }
+        if (cell.includes('전년DC') || (cell.includes('전년') && (cell.includes('DC') || cell.includes('할인'))) || (cell.includes('24') && (cell.includes('DC') || cell.includes('할인')))) {
+          lastYearDcRateColIndex = j;
+          foundCount++;
+        }
+        if (cell.includes('전년대비') || cell.includes('차이') || cell.includes('변화') || cellLower.includes('diff')) {
+          differenceColIndex = j;
+          foundCount++;
+        }
+      }
+      
+      // 3개 이상의 컬럼을 찾으면 헤더 행으로 간주
+      if (foundCount >= 3) {
+        dcHeaderRowIndex = i;
+        break;
+      }
+    }
+    
+    if (dcStoreNameColIndex < 0) {
+      console.log('⚠️  DC율 시트에서 매장명 컬럼을 찾을 수 없습니다.');
+      return [];
+    }
+    
+    // E열(인덱스 4), F열(인덱스 5)이 24년 데이터인지 확인
+    if (lastYearRealPriceColIndex < 0 && dcHeaderRowIndex >= 0) {
+      const headerRow = dcRawData[dcHeaderRowIndex];
+      if (headerRow && Array.isArray(headerRow) && headerRow[4]) {
+        const eColCell = String(headerRow[4] || '').trim();
+        if (eColCell.includes('24') || eColCell.includes('전년') || eColCell.includes('실판가') || eColCell.includes('판가')) {
+          lastYearRealPriceColIndex = 4;
+          console.log(`✅ E열(인덱스 4)을 24년 실판가로 인식: "${eColCell}"`);
+        }
+      }
+    }
+    if (lastYearTagPriceColIndex < 0 && dcHeaderRowIndex >= 0) {
+      const headerRow = dcRawData[dcHeaderRowIndex];
+      if (headerRow && Array.isArray(headerRow) && headerRow[5]) {
+        const fColCell = String(headerRow[5] || '').trim();
+        if (fColCell.includes('24') || fColCell.includes('전년') || fColCell.includes('택가') || fColCell.includes('정가')) {
+          lastYearTagPriceColIndex = 5;
+          console.log(`✅ F열(인덱스 5)을 24년 택가로 인식: "${fColCell}"`);
+        }
+      }
+    }
+    
+    console.log(`✅ DC율 시트 컬럼 인덱스: 매장명=${dcStoreNameColIndex}, 실판가(25년)=${realPriceColIndex >= 0 ? realPriceColIndex : '없음'}, 택가(25년)=${tagPriceColIndex >= 0 ? tagPriceColIndex : '없음'}, 실판가(24년)=E열(4), 택가(24년)=F열(5), DC율=${dcRateColIndex >= 0 ? dcRateColIndex : '없음'}, 전년DC율=G열(6), 전년대비차이=${differenceColIndex >= 0 ? differenceColIndex : '없음'}`);
+    
+    // 숫자 파싱 헬퍼
+    const parseNumeric = (val: any): number => {
+      if (val == null || val === '') return 0;
+      if (typeof val === 'number') return val;
+      const str = String(val).replace(/[^0-9.-]/g, '');
+      return parseFloat(str) || 0;
+    };
+    
+    // 5. DC율 시트에서 매장별 실적 데이터 읽기 및 상권구분과 합치기
+    const dcRateDataMap = new Map<string, any>(); // 매장명 -> DC율 데이터
+    
+    console.log(`📊 데이터 행 파싱 시작 (헤더 행: ${dcHeaderRowIndex + 1}행)`);
+    
+    for (let i = (dcHeaderRowIndex >= 0 ? dcHeaderRowIndex + 1 : 1); i < dcRawData.length; i++) {
+      const row = dcRawData[i];
+      if (!row || !Array.isArray(row)) continue;
+      
+      const storeName = String(row[dcStoreNameColIndex] || '').trim();
+      
+      if (!storeName || storeName === '매장명' || storeName === '') {
+        continue;
+      }
+      
+      // 실판가, 택가, DC율, 전년DC율, 전년대비차이 추출
+      const realPrice = realPriceColIndex >= 0 ? parseNumeric(row[realPriceColIndex]) : undefined; // 25년 실판가
+      const tagPrice = tagPriceColIndex >= 0 ? parseNumeric(row[tagPriceColIndex]) : undefined; // 25년 택가
+      // 24년 데이터: E열(인덱스 4) = 실판가, F열(인덱스 5) = 택가
+      const lastYearRealPrice = parseNumeric(row[4]); // E열: 24년 실판가
+      const lastYearTagPrice = parseNumeric(row[5]); // F열: 24년 택가
+      const dcRate = dcRateColIndex >= 0 ? parseNumeric(row[dcRateColIndex]) : undefined;
+      // 전년 DC율: G열(인덱스 6)에서 직접 읽기
+      const lastYearDcRateRaw = row[6]; // G열 원본 값
+      const lastYearDcRate = parseNumeric(lastYearDcRateRaw); // G열: 전년 DC율
+      let difference = differenceColIndex >= 0 ? parseNumeric(row[differenceColIndex]) : undefined;
+      
+      // 디버깅: 처음 3개 매장의 G열 값 확인
+      if (dcRateDataMap.size < 3) {
+        console.log(`   매장 ${dcRateDataMap.size + 1}: ${storeName} - G열(인덱스 6) 원본값="${lastYearDcRateRaw}", 파싱값=${lastYearDcRate}`);
+      }
+      
+      // DC율 계산: (택가 - 실판가) / 택가 * 100 (25년)
+      let calculatedDcRate = dcRate;
+      if (calculatedDcRate === undefined && realPrice !== undefined && tagPrice !== undefined && tagPrice > 0) {
+        calculatedDcRate = ((tagPrice - realPrice) / tagPrice) * 100;
+      }
+      
+      // 전년 DC율은 G열에서 직접 읽은 값 사용 (계산하지 않음)
+      const calculatedLastYearDcRate = lastYearDcRate !== undefined && !isNaN(lastYearDcRate) && lastYearDcRate > 0 ? lastYearDcRate : undefined;
+      
+      // 전년대비차이가 없으면 계산 (DC율 - 전년DC율)
+      if (difference === undefined && calculatedDcRate !== undefined && calculatedLastYearDcRate !== undefined) {
+        difference = calculatedDcRate - calculatedLastYearDcRate;
+      }
+      
+      dcRateDataMap.set(storeName, {
+        realPrice: realPrice !== undefined && realPrice > 0 ? realPrice : undefined,
+        tagPrice: tagPrice !== undefined && tagPrice > 0 ? tagPrice : undefined,
+        dcRate: calculatedDcRate !== undefined && !isNaN(calculatedDcRate) ? calculatedDcRate : undefined,
+        lastYearDcRate: calculatedLastYearDcRate !== undefined && !isNaN(calculatedLastYearDcRate) && calculatedLastYearDcRate > 0 ? calculatedLastYearDcRate : undefined,
+        difference: difference !== undefined && !isNaN(difference) ? difference : undefined
+      });
+      
+      // 디버깅: 처음 3개 매장의 최종 데이터 확인
+      if (dcRateDataMap.size <= 3) {
+        const finalData = dcRateDataMap.get(storeName);
+        console.log(`   최종 데이터: ${storeName}`, {
+          realPrice: finalData.realPrice,
+          tagPrice: finalData.tagPrice,
+          dcRate: finalData.dcRate,
+          lastYearDcRate: finalData.lastYearDcRate,
+          difference: finalData.difference
+        });
+      }
+    }
+    
+    console.log(`✅ DC율 데이터 파싱 완료: ${dcRateDataMap.size}개 매장`);
+    
+    // 6. 상권구분과 DC율 데이터 합치기
+    const areaMap = new Map<string, any[]>();
+    
+    // 상권구분 시트의 매장 목록을 기준으로 DC율 데이터를 합침
+    storeAreaMap.forEach((area, storeName) => {
+      const dcData = dcRateDataMap.get(storeName);
+      
+      if (!areaMap.has(area)) {
+        areaMap.set(area, []);
+      }
+      
+      areaMap.get(area)!.push({
+        storeName,
+        realPrice: dcData?.realPrice,
+        tagPrice: dcData?.tagPrice,
+        dcRate: dcData?.dcRate,
+        lastYearDcRate: dcData?.lastYearDcRate,
+        difference: dcData?.difference
+      });
+    });
+    
+    // DC율 시트에만 있고 상권구분 시트에 없는 매장도 추가 (상권구분이 없는 경우)
+    dcRateDataMap.forEach((dcData, storeName) => {
+      if (!storeAreaMap.has(storeName)) {
+        const unknownArea = '기타';
+        if (!areaMap.has(unknownArea)) {
+          areaMap.set(unknownArea, []);
+        }
+        areaMap.get(unknownArea)!.push({
+          storeName,
+          realPrice: dcData.realPrice,
+          tagPrice: dcData.tagPrice,
+          dcRate: dcData.dcRate,
+          lastYearDcRate: dcData.lastYearDcRate,
+          difference: dcData.difference
+        });
+      }
+    });
+    
+    // 상권별로 정렬하여 배열로 변환
+    const result = Array.from(areaMap.entries())
+      .map(([area, stores]) => ({
+        area,
+        stores: stores.sort((a, b) => {
+          // 실판가 기준 내림차순 정렬
+          const aRealPrice = a.realPrice || 0;
+          const bRealPrice = b.realPrice || 0;
+          if (aRealPrice !== bRealPrice) {
+            return bRealPrice - aRealPrice; // 내림차순
+          }
+          // 실판가가 같으면 매장명 기준 오름차순
+          return a.storeName.localeCompare(b.storeName);
+        })
+      }))
+      .sort((a, b) => a.area.localeCompare(b.area));
+    
+    console.log(`✅ 매장별 DC율 데이터 파싱 완료: ${result.length}개 상권, ${result.reduce((sum, r) => sum + r.stores.length, 0)}개 매장`);
+    
+    // 샘플 데이터 출력 (처음 3개 매장)
+    if (result.length > 0 && result[0].stores.length > 0) {
+      console.log('📊 샘플 데이터 (첫 번째 상권의 처음 3개 매장):');
+      result[0].stores.slice(0, 3).forEach((store, idx) => {
+        console.log(`   ${idx + 1}. ${store.storeName}:`, {
+          realPrice: store.realPrice,
+          tagPrice: store.tagPrice,
+          dcRate: store.dcRate,
+          lastYearDcRate: store.lastYearDcRate,
+          difference: store.difference
+        });
+      });
+    }
+    
+    return result;
+    
+  } catch (error) {
+    console.error('매장별 DC율 데이터 파싱 실패:', error);
+    return [];
+  }
+}
+
+/**
  * JSON 데이터에서 요약 데이터 파싱
  */
 function parseSummaryFromJson(jsonData: any): any {
@@ -570,7 +1196,7 @@ function parseSummaryFromJson(jsonData: any): any {
  * ⚠️ 실제 엑셀 구조에 맞게 컬럼명을 수정하세요!
  *    npm run analyze 명령으로 실제 컬럼명을 확인할 수 있습니다.
  */
-function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?: any, monthlyData?: any[], weeklyData?: any[], storeByArea?: any) {
+function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?: any, monthlyData?: any[], weeklyData?: any[], storeByArea?: any, uploadKpiData?: any, storeDCRate?: any[]) {
   console.log(`\n🔄 데이터 변환 시작: ${rawData.length.toLocaleString()}행 처리 중...\n`);
   
   // 엑셀에서 읽은 데이터로 각 섹션 생성
@@ -706,15 +1332,74 @@ function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?
   }
   console.log('');
 
-  // 요약 시트의 H7, I7, J7, K7, Q7, R7, S7 값 추출
-  // summaryData가 없거나 값이 없을 경우를 대비한 안전한 추출
-  const salesTarget = (summaryData?.salesTarget?.[0]?.value ?? 0) as number; // H7
-  const forecast = (summaryData?.forecast?.[0]?.value ?? 0) as number; // I7
-  const forecastAchievementRateValue = (summaryData?.forecastAchievementRate?.[0]?.value ?? 0) as number; // J7
-  const lastYear = (summaryData?.lastYear?.[0]?.value ?? 0) as number; // K7
-  const periodPerformance = (summaryData?.periodPerformance?.[0]?.value ?? 0) as number; // Q7
-  const lastYearPeriod = (summaryData?.lastYearPeriod?.[0]?.value ?? 0) as number; // R7
-  const periodGrowthRate = (summaryData?.periodGrowthRate?.[0]?.value ?? 0) as number; // S7
+  // 요약 시트의 KPI 값 추출
+  // 우선순위: 1) upload 시트, 2) 상권별 SUM 행, 3) 요약 시트 SUM 행
+  let salesTarget = 0;
+  let forecast = 0;
+  let forecastAchievementRateValue = 0;
+  let lastYear = 0;
+  let periodPerformance = 0;
+  let lastYearPeriod = 0;
+  let periodGrowthRate = 0;
+  
+  // 1순위: upload 시트에서 KPI 데이터 추출
+  if (uploadKpiData && (uploadKpiData.salesTarget > 0 || uploadKpiData.periodPerformance > 0)) {
+    salesTarget = uploadKpiData.salesTarget || 0;
+    forecast = uploadKpiData.forecast || 0;
+    periodPerformance = uploadKpiData.periodPerformance || 0;
+    lastYearPeriod = uploadKpiData.lastYearPeriod || 0;
+    periodGrowthRate = uploadKpiData.periodGrowthRate || 0;
+    forecastAchievementRateValue = uploadKpiData.forecastAchievementRate || 0;
+    
+    console.log('✅ upload 시트에서 KPI 추출:', {
+      salesTarget,
+      forecast,
+      periodPerformance,
+      lastYearPeriod,
+      periodGrowthRate,
+      forecastAchievementRateValue
+    });
+  }
+  // 2순위: 상권별 데이터에서 SUM 행 찾기 (KPI 데이터)
+  else if (summaryData?.byArea && summaryData.byArea.length > 0) {
+    const areaData = summaryData.byArea;
+    console.log('📊 상권별 데이터에서 SUM 행 찾기:', areaData.length, '개 항목');
+    
+    // SUM 행 찾기 (KPI 데이터로 사용)
+    const sumRow = areaData.find((item: any) => item.name === 'SUM');
+    if (sumRow) {
+      salesTarget = sumRow.target || sumRow.novemberTarget || 0;
+      forecast = sumRow.forecast || sumRow.salesFCST || 0;
+      periodPerformance = sumRow.periodPerformance || sumRow.actualMTD || 0;
+      lastYearPeriod = sumRow.lastYearPeriod || sumRow.lyActual || 0;
+      periodGrowthRate = sumRow.periodGrowthRate || 0;
+      forecastAchievementRateValue = sumRow.forecastAchievementRate || 0;
+      
+      console.log('✅ SUM 행에서 KPI 추출:', {
+        salesTarget,
+        forecast,
+        periodPerformance,
+        lastYearPeriod,
+        periodGrowthRate,
+        forecastAchievementRateValue
+      });
+    } else {
+      console.log('⚠️  SUM 행을 찾을 수 없습니다. 상권별 데이터:', areaData.map((item: any) => item.name));
+    }
+  }
+  
+  // 3순위: 상권별 데이터가 없으면 요약 시트 SUM 행 데이터 사용
+  if (salesTarget === 0 && periodPerformance === 0) {
+    salesTarget = (summaryData?.salesTarget?.[0]?.value ?? 0) as number; // H7
+    forecast = (summaryData?.forecast?.[0]?.value ?? 0) as number; // I7
+    forecastAchievementRateValue = (summaryData?.forecastAchievementRate?.[0]?.value ?? 0) as number; // J7
+    lastYear = (summaryData?.lastYear?.[0]?.value ?? 0) as number; // K7
+    periodPerformance = (summaryData?.periodPerformance?.[0]?.value ?? 0) as number; // Q7
+    lastYearPeriod = (summaryData?.lastYearPeriod?.[0]?.value ?? 0) as number; // R7
+    periodGrowthRate = (summaryData?.periodGrowthRate?.[0]?.value ?? 0) as number; // S7
+    
+    console.log('⚠️  상권별 데이터 없음, SUM 행 데이터 사용');
+  }
   
   console.log('🔍 KPI 데이터 추출:', {
     salesTarget,
@@ -749,33 +1434,33 @@ function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?
   const data = {
     kpis: {
       salesTarget: {
-        value: formatCurrency(salesTarget),
+        value: formatBillion(salesTarget),
         change: calculatedForecastAchievementRate.toFixed(1) + '% 달성 예상',
         trend: calculatedForecastAchievementRate >= 100 ? "up" as const : "down" as const,
       },
       periodPerformance: {
-        value: formatCurrency(periodPerformance),
-        change: '실적 (Q7)',
+        value: formatBillion(periodPerformance),
+        change: '실적',
         trend: periodPerformance >= salesTarget ? "up" as const : "down" as const,
       },
       lastYearPeriod: {
-        value: formatCurrency(lastYearPeriod),
-        change: '전년실적 (R7)',
+        value: formatBillion(lastYearPeriod),
+        change: '전년실적',
         trend: "up" as const,
       },
       periodGrowthRate: {
         value: calculatedGrowthRate.toFixed(1) + '%',
-        change: '전년비 (S7)',
+        change: '전년비',
         trend: calculatedGrowthRate >= 0 ? "up" as const : "down" as const,
       },
       forecast: {
-        value: formatCurrency(forecast),
+        value: formatBillion(forecast),
         change: calculatedForecastAchievementRate.toFixed(1) + '% 달성률',
         trend: calculatedForecastAchievementRate >= 100 ? "up" as const : "down" as const,
       },
       forecastAchievementRate: {
         value: calculatedForecastAchievementRate.toFixed(1) + '%',
-        change: '예상달성율 (J7)',
+        change: '예상달성율',
         trend: calculatedForecastAchievementRate >= 100 ? "up" as const : "down" as const,
       },
     },
@@ -786,6 +1471,7 @@ function convertExcelToDashboard(rawData: any[], sheetName: string, summaryData?
     forecast: forecastData.length > 0 ? forecastData : undefined,
     summarySheet: summaryData || undefined,
     storeByArea: storeByArea || {},
+    storeDCRate: storeDCRate || [],
     summary: {
       totalRows: rawData.length,
       lastUpdated: new Date().toLocaleString('ko-KR'),
@@ -819,6 +1505,15 @@ function parseNumber(value: any): number {
  */
 function formatCurrency(value: number): string {
   return `₩${value.toLocaleString('ko-KR')}`;
+}
+
+/**
+ * 숫자를 억원 단위로 변환
+ */
+function formatBillion(value: number): string {
+  if (!value || value === 0) return '0.0';
+  const billion = (value / 100000000).toFixed(1);
+  return `${billion}억원`;
 }
 
 /**

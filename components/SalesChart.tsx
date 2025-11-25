@@ -32,15 +32,16 @@ export default function SalesChart({ data }: SalesChartProps) {
   }));
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">월별 매출 추이</h2>
-        <p className="text-sm text-gray-600">
-          막대: 실매출 vs 목표 | 🔴 곡선: 달성율(%) | 🟣 곡선: 신장율(%)
+    <div className="bg-white rounded-xl shadow-lg p-3 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 sm:mb-2">월별 매출 추이</h2>
+        <p className="text-xs sm:text-sm text-gray-600">
+          <span className="hidden sm:inline">막대: 실매출 vs 목표 | 🔴 곡선: 달성율(%) | 🟣 곡선: 신장율(%)</span>
+          <span className="sm:hidden">실매출 vs 목표 | 달성율 | 신장율</span>
         </p>
       </div>
       
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={250} className="sm:h-[350px]">
         <ComposedChart data={chartData}>
           <defs>
             <linearGradient id="colorTarget" x1="0" y1="0" x2="0" y2="1">
@@ -59,6 +60,7 @@ export default function SalesChart({ data }: SalesChartProps) {
             dataKey="month" 
             stroke="#666"
             style={{ fontSize: '12px' }}
+            className="text-[10px] sm:text-xs"
           />
           
           {/* 왼쪽 Y축: 매출액 */}
@@ -67,6 +69,8 @@ export default function SalesChart({ data }: SalesChartProps) {
             stroke="#666"
             tickFormatter={(value) => `${(value / 100000000).toFixed(0)}억`}
             style={{ fontSize: '12px' }}
+            className="text-[10px] sm:text-xs"
+            width={60}
             label={{ value: '매출액 (억원)', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
           />
           
@@ -77,6 +81,8 @@ export default function SalesChart({ data }: SalesChartProps) {
             stroke="#ef4444"
             tickFormatter={(value) => `${value}%`}
             style={{ fontSize: '12px' }}
+            className="text-[10px] sm:text-xs"
+            width={60}
             label={{ value: '달성율 (%)', angle: 90, position: 'insideRight', style: { fontSize: '12px' } }}
           />
           

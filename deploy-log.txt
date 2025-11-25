@@ -1,0 +1,35 @@
+================================================================================
+Vercel 배포를 위한 엑셀 파일 JSON 변환
+================================================================================
+
+1️⃣  backdata.xlsx 변환 중...
+   ✅ 저장: public/backdata.json (0.03 MB)
+
+2️⃣  mw_일주월별_판매.xlsx 변환 중...
+   ✅ 저장: public/weekly-sales-data.json (9.42 MB)
+   📅 46,987행 변환 완료
+
+3️⃣  ending focast.xlsx 변환 중...
+   ✅ 저장: public/ending-focast.json (2.23 MB)
+   📋 시트 수: 11
+
+4️⃣  주간회의 시트 변환 중...
+   ✅ 저장: public/weekly-meeting-data.json (0.01 MB)
+   📋 카테고리 수: 4
+
+================================================================================
+변환 완료 요약
+================================================================================
+✅ 성공: 4개
+❌ 실패: 0개
+📦 총 JSON 크기: 11.68 MB
+
+✅ Vercel 배포 준비 완료!
+
+다음 단계:
+  1. npm run build          # 빌드 테스트
+  2. vercel                 # Vercel 배포
+
+Vercel CLI 48.10.10
+Retrieving project…
+Error: The specified token is not valid. Use `vercel login` to generate a new token.
